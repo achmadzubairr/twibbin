@@ -28,7 +28,7 @@ function App() {
     <div className="overflow-x-hidden">
       <nav>
         <div className="header w-full sticky w top-0 left-0 right-0 z-[99] h-12 p-4 py-7 flex items-center font-ysabeau font-medium text-xl lg:text-2xl text-gray-500">
-          <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span> Twibbin STIBA Makassar
+          <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span>STIBA Makassar
         </div>
         <div className="flex flex-col items-center pt-10 w-full min-h-screen pb-12 bg-[#f2fdf5]">
           <div className="bg-white w-[18rem] md:w-[28rem] lg:w-[35rem] drop-shadow-lg rounded-lg overflow-hidden">
@@ -65,7 +65,7 @@ function App() {
             </div>
           </div>
           <div className="mt-8 text-base md:text-lg font-ysabeau text-[#8f8f8f]">
-            Dibuat dengan Twibbin STIBA Makassar
+            © STIBA Makassar
           </div>
         </div>
       </nav>
