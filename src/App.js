@@ -46,9 +46,9 @@ function App() {
             <div className="mt-4 px-4 pb-4">
               <input 
                 className="w-full block font-roboto p-2 px-4 border border-[#5e5e5e] rounded-xl mb-2" 
-                type="text" 
-                placeholder="Nama" 
-                value={name} onChange={(e) => handleInputChange(e, setName, 25)}
+                type="text" placeholder="Nama" 
+                value={name}
+                onChange={(e) => handleInputChange(e, setName, 25)}
                 />
               <input 
                 className="w-full block font-roboto p-2 px-4 border border-[#5e5e5e] rounded-xl mb-4" 
