@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas';
 import inLogo from './images/in-logo.png'
 import imageTemplate from './images/template.jpg'
 import './App.css';
+import { Analytics } from '@vercel/analytics/react';
 
 function App() {  
   const [name, setName] = useState('')
@@ -26,6 +27,7 @@ function App() {
 
   return (
     <div className="overflow-x-hidden">
+      <Analytics />
       <nav>
         <div className="header w-full sticky w top-0 left-0 right-0 z-[99] h-12 p-4 py-7 flex items-center font-ysabeau font-medium text-xl lg:text-2xl text-gray-500">
           <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span>STIBA Makassar
