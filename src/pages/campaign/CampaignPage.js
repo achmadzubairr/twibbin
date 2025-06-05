@@ -25,6 +25,8 @@ function CampaignPage() {
   const [processingPhoto, setProcessingPhoto] = useState(false);
   const [transformData, setTransformData] = useState(null);
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
+  const [isGestureActive, setIsGestureActive] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   
   const imageSize = 1000;
 
@@ -91,8 +93,13 @@ function CampaignPage() {
 
 
   const handlePositionChange = async (newTransformData) => {
+    console.log('Position changed (gesture finished):', newTransformData);
     setTransformData(newTransformData);
-    // Don't auto-update processed image - generate on-demand when downloading
+  };
+
+  const handleGestureStateChange = (isActive) => {
+    console.log('Gesture state changed:', isActive);
+    setIsGestureActive(isActive);
   };
 
   const cleanNameForFilename = (name) => {
@@ -106,6 +113,7 @@ function CampaignPage() {
     // Photo campaign download
     if (campaign?.campaign_type === 'photo' && transformData) {
       try {
+        setIsDownloading(true);
         console.log('Starting download with transform data:', transformData);
         
         // Track download in database first
@@ -140,6 +148,8 @@ function CampaignPage() {
       } catch (error) {
         console.error('Error downloading processed image:', error);
         alert('Gagal mengunduh gambar. Coba lagi.');
+      } finally {
+        setIsDownloading(false);
       }
       return;
     }
@@ -231,6 +241,7 @@ function CampaignPage() {
                         templateUrl={campaign.template_url}
                         userPhoto={userPhoto}
                         onPositionChange={handlePositionChange}
+                        onGestureStateChange={handleGestureStateChange}
                       />
                     </div>
                   ) : processedImage ? (
@@ -292,6 +303,7 @@ function CampaignPage() {
                             setUserPhoto(null);
                             setProcessedImage(null);
                             setTransformData(null);
+                            setIsGestureActive(false);
                           }}
                           className="text-sm text-gray-500 hover:text-gray-700"
                         >
@@ -299,11 +311,31 @@ function CampaignPage() {
                         </button>
                       </div>
                       
+                      {/* Status indicator */}
+                      {isGestureActive && (
+                        <div className="flex items-center justify-center py-2 mb-2">
+                          <div className="animate-pulse h-2 w-2 bg-orange-500 rounded-full mr-2"></div>
+                          <span className="text-sm text-gray-600">Menunggu posisi stabil...</span>
+                        </div>
+                      )}
+                      
+                      {/* Debug info */}
+                      <div className="text-xs text-gray-400 text-center mb-2">
+                        Debug: isGestureActive={isGestureActive.toString()}, hasTransform={!!transformData}
+                      </div>
+                      
                       <button 
-                        disabled={!transformData} 
+                        disabled={!transformData || isGestureActive || isDownloading} 
                         className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]" 
                         onClick={handleDownloadImage}>
-                        {transformData ? 'Unduh Gambar' : 'Atur foto dulu...'}
+                        {isDownloading ? (
+                          <div className="flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                            Memproses...
+                          </div>
+                        ) : isGestureActive ? 
+                          'Tunggu posisi stabil...' : 
+                          transformData ? 'Unduh Gambar' : 'Atur foto dulu...'}
                       </button>
                     </div>
                   )}

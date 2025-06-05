@@ -3,7 +3,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 const PhotoEditor = ({ 
   templateUrl, 
   userPhoto, 
-  onPositionChange
+  onPositionChange,
+  onGestureStateChange
 }) => {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoTransform, setPhotoTransform] = useState({
@@ -14,9 +15,11 @@ const PhotoEditor = ({
   const [isDragging, setIsDragging] = useState(false);
   const [lastTouch, setLastTouch] = useState(null);
   const [lastDistance, setLastDistance] = useState(null);
+  const [isGestureActive, setIsGestureActive] = useState(false);
   
   const containerRef = useRef(null);
   const photoRef = useRef(null);
+  const notifyTimeoutRef = useRef(null);
 
   // Create photo preview URL
   useEffect(() => {
@@ -27,20 +30,37 @@ const PhotoEditor = ({
     }
   }, [userPhoto]);
 
-  // Notify parent of changes
+  // Only notify parent when gesture is not active
   useEffect(() => {
-    if (onPositionChange && containerRef.current) {
-      const containerSize = containerRef.current.getBoundingClientRect();
-      onPositionChange({
-        transform: photoTransform,
-        photoPreview,
-        previewSize: {
-          width: containerSize.width,
-          height: containerSize.height
+    if (onPositionChange && containerRef.current && !isGestureActive) {
+      // Clear previous timeout
+      if (notifyTimeoutRef.current) {
+        clearTimeout(notifyTimeoutRef.current);
+      }
+      
+      // Small delay to ensure gesture is really finished
+      notifyTimeoutRef.current = setTimeout(() => {
+        const containerSize = containerRef.current?.getBoundingClientRect();
+        if (containerSize && !isGestureActive) {
+          onPositionChange({
+            transform: photoTransform,
+            photoPreview,
+            previewSize: {
+              width: containerSize.width,
+              height: containerSize.height
+            }
+          });
         }
-      });
+      }, 200);
     }
-  }, [photoTransform, photoPreview, onPositionChange]);
+    
+    // Cleanup timeout
+    return () => {
+      if (notifyTimeoutRef.current) {
+        clearTimeout(notifyTimeoutRef.current);
+      }
+    };
+  }, [photoTransform, photoPreview, onPositionChange, isGestureActive]);
 
   // Get distance between two touches
   const getDistance = (touch1, touch2) => {
@@ -52,6 +72,8 @@ const PhotoEditor = ({
   // Touch start handler
   const handleTouchStart = (e) => {
     e.preventDefault();
+    setIsGestureActive(true);
+    if (onGestureStateChange) onGestureStateChange(true);
     
     if (e.touches.length === 1) {
       // Single touch - start dragging
@@ -115,6 +137,8 @@ const PhotoEditor = ({
       setIsDragging(false);
       setLastTouch(null);
       setLastDistance(null);
+      setIsGestureActive(false);
+      if (onGestureStateChange) onGestureStateChange(false);
     } else if (e.touches.length === 1 && lastDistance !== null) {
       // Went from 2 touches to 1 touch - switch from pinch to drag
       setLastDistance(null);
@@ -129,6 +153,8 @@ const PhotoEditor = ({
   // Mouse events for desktop support
   const handleMouseDown = (e) => {
     e.preventDefault();
+    setIsGestureActive(true);
+    if (onGestureStateChange) onGestureStateChange(true);
     setIsDragging(true);
     setLastTouch({
       x: e.clientX,
@@ -157,6 +183,8 @@ const PhotoEditor = ({
   const handleMouseUp = () => {
     setIsDragging(false);
     setLastTouch(null);
+    setIsGestureActive(false);
+    if (onGestureStateChange) onGestureStateChange(false);
   };
 
   // Wheel event for desktop zoom
