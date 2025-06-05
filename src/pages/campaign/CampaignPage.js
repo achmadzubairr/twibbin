@@ -63,10 +63,10 @@ function CampaignPage() {
       const campaignType = campaign.campaign_type === 'photo' ? 'foto' : 'nama';
       
       // Set title
-      document.title = `Twibbin | Buat ${campaign.name}`;
+      document.title = `Twibbin | Buat custom kartu ucapan`;
       
-      // Set meta description
-      const description = `Buat kartu ucapan ${campaign.name} yang disesuaikan dengan ${campaignType} anda`;
+      // Set meta description - sama dengan text sharing
+      const description = `Buat kartu ucapan ${campaign.name} yang disesuaikan dengan ${campaignType} anda di Twibbin!`;
       
       // Update or create meta tags
       const updateMetaTag = (property, content) => {
@@ -84,16 +84,25 @@ function CampaignPage() {
         meta.setAttribute('content', content);
       };
 
+      // Add cache busting timestamp untuk meta tags
+      const timestamp = Date.now();
+      const imageUrlWithCache = `${campaign.template_url}?v=${timestamp}`;
+
       updateMetaTag('description', description);
-      updateMetaTag('og:title', `Twibbin | Buat ${campaign.name}`);
+      updateMetaTag('og:title', `Twibbin | Buat custom kartu ucapan`);
       updateMetaTag('og:description', description);
-      updateMetaTag('og:image', campaign.template_url);
+      updateMetaTag('og:image', imageUrlWithCache);
+      updateMetaTag('og:image:width', '1200');
+      updateMetaTag('og:image:height', '630');
+      updateMetaTag('og:image:type', 'image/jpeg');
       updateMetaTag('og:url', window.location.href);
       updateMetaTag('og:type', 'website');
+      updateMetaTag('og:site_name', 'Twibbin');
       updateMetaTag('twitter:card', 'summary_large_image');
-      updateMetaTag('twitter:title', `Twibbin | Buat ${campaign.name}`);
+      updateMetaTag('twitter:title', `Twibbin | Buat custom kartu ucapan`);
       updateMetaTag('twitter:description', description);
-      updateMetaTag('twitter:image', campaign.template_url);
+      updateMetaTag('twitter:image', imageUrlWithCache);
+      updateMetaTag('twitter:image:alt', `Template ${campaign.name}`);
     }
   }, [campaign]);
 
