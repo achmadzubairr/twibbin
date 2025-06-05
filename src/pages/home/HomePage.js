@@ -18,7 +18,27 @@ function HomePage() {
     const customTemplate = getTemplate();
     if (customTemplate) {
       setTemplateImage(customTemplate);
+    } else {
+      setTemplateImage(defaultTemplate);
     }
+
+    // Listen for storage changes to update template in real-time
+    const handleStorageChange = (e) => {
+      if (e.key === 'customTemplate') {
+        if (e.newValue) {
+          setTemplateImage(e.newValue);
+        } else {
+          setTemplateImage(defaultTemplate);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const handleDownloadImage = () => {
