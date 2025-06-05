@@ -93,12 +93,10 @@ function CampaignPage() {
 
 
   const handlePositionChange = async (newTransformData) => {
-    console.log('Position changed (gesture finished):', newTransformData);
     setTransformData(newTransformData);
   };
 
   const handleGestureStateChange = (isActive) => {
-    console.log('Gesture state changed:', isActive);
     setIsGestureActive(isActive);
   };
 
@@ -114,7 +112,6 @@ function CampaignPage() {
     if (campaign?.campaign_type === 'photo' && transformData) {
       try {
         setIsDownloading(true);
-        console.log('Starting download with transform data:', transformData);
         
         // Track download in database first
         const trackResult = await trackDownload({
@@ -128,7 +125,6 @@ function CampaignPage() {
           console.warn('Failed to track download:', trackResult.error);
         }
 
-        console.log('Generating final image...');
         // Generate final image with current transform data
         const finalImage = await createCustomPositionedImage(
           campaign.template_url,
@@ -137,8 +133,6 @@ function CampaignPage() {
           1000,
           1000
         );
-
-        console.log('Final image generated, starting download...');
         // Download the final image
         const a = document.createElement('a');
         a.href = finalImage;
@@ -319,10 +313,6 @@ function CampaignPage() {
                         </div>
                       )}
                       
-                      {/* Debug info */}
-                      <div className="text-xs text-gray-400 text-center mb-2">
-                        Debug: isGestureActive={isGestureActive.toString()}, hasTransform={!!transformData}
-                      </div>
                       
                       <button 
                         disabled={!transformData || isGestureActive || isDownloading} 
