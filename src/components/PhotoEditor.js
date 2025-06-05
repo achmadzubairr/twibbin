@@ -204,11 +204,21 @@ const PhotoEditor = ({
 
   // Wheel event for desktop zoom - only when hovering over editor
   const handleWheel = useCallback((e) => {
+    // Detect if this is a mobile device
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     window.innerWidth <= 768 || 
+                     'ontouchstart' in window;
+    
+    // Disable wheel zoom on mobile to prevent accidental zoom
+    if (isMobile) {
+      return;
+    }
+    
     if (!isHovered) {
       return; // Allow normal page scroll when not hovering
     }
     
-    // Always prevent default when hovering over editor
+    // Always prevent default when hovering over editor (desktop only)
     e.preventDefault();
     e.stopPropagation();
     

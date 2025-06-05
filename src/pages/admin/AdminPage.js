@@ -266,20 +266,18 @@ function AdminPage() {
   }, [activeTab]);
 
   return (
-    <div className="overflow-x-hidden">
-      <nav>
-        <div className="header w-full sticky w top-0 left-0 right-0 z-[99] h-12 p-4 py-7 flex items-center justify-between font-ysabeau font-medium text-xl lg:text-2xl text-gray-500">
-          <div className="flex items-center">
-            <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span>STIBA Makassar
-          </div>
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-base text-gray-500 hover:text-gray-700">Beranda</Link>
-            <button onClick={handleLogout} className="text-base text-red-500 hover:text-red-700">Logout</button>
-          </div>
+    <div className="overflow-x-hidden min-h-screen bg-[#f2fdf5]">
+      <nav className="header w-full sticky top-0 left-0 right-0 z-[99] px-4 py-4 flex items-center justify-between font-ysabeau font-medium text-xl lg:text-2xl text-gray-500 bg-[#f2fdf5]">
+        <div className="flex items-center">
+          <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span>STIBA Makassar
+        </div>
+        <div className="flex items-center gap-4">
+          <Link to="/" className="text-base text-gray-500 hover:text-gray-700">Beranda</Link>
+          <button onClick={handleLogout} className="text-base text-red-500 hover:text-red-700">Logout</button>
         </div>
       </nav>
       
-      <div className="min-h-screen bg-[#f2fdf5] flex flex-col items-center pt-10 pb-12">
+      <div className="flex flex-col items-center pt-6 pb-8 px-4">
         <div className="bg-white w-[18rem] md:w-[28rem] lg:w-[35rem] drop-shadow-lg rounded-lg overflow-hidden p-6">
           <h1 className="text-2xl font-bold mb-6 text-center">Admin Panel</h1>
           
@@ -485,7 +483,7 @@ function AdminPage() {
               {campaigns.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">Belum ada campaign</p>
               ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-3 max-h-96" style={{overflowY: campaigns.length > 4 ? 'auto' : 'visible'}}>
                   {campaigns.map((campaign) => (
                     <div key={campaign.id} className="border rounded-lg p-4 bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
@@ -612,7 +610,7 @@ function AdminPage() {
                     {analytics.length === 0 ? (
                       <p className="text-gray-500 text-center py-8">Belum ada data analytics</p>
                     ) : (
-                      <div className="space-y-3 max-h-80 overflow-y-auto">
+                      <div className="space-y-3 max-h-80" style={{overflowY: analytics.length > 3 ? 'auto' : 'visible'}}>
                         {analytics.map((campaign) => (
                           <div key={campaign.id} className="border rounded-lg p-4 bg-gray-50">
                             <div className="flex justify-between items-start mb-3">
@@ -664,7 +662,7 @@ function AdminPage() {
                         </div>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                        <div className="space-y-2 max-h-64" style={{overflowY: downloadStats.topNames.length > 8 ? 'auto' : 'visible'}}>
                           {downloadStats.topNames.slice(0, 15).map((item, index) => (
                             <div key={index} className="flex justify-between items-center py-1">
                               <div className="flex items-center">
@@ -719,7 +717,7 @@ function AdminPage() {
               ) : downloads.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">Belum ada download</p>
               ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-3 max-h-96" style={{overflowY: downloads.length > 5 ? 'auto' : 'visible'}}>
                   {downloads.map((download) => (
                     <div key={download.id} className="border rounded-lg p-3 bg-gray-50">
                       <div className="flex justify-between items-start mb-2">

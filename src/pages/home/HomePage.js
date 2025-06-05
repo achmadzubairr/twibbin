@@ -23,15 +23,15 @@ function HomePage() {
   }, []);
 
   return (
-    <div className="overflow-x-hidden">
-      <nav>
-        <div className="header w-full sticky w top-0 left-0 right-0 z-[99] h-12 p-4 py-7 flex items-center justify-between font-ysabeau font-medium text-xl lg:text-2xl text-gray-500">
-          <div className="flex items-center">
-            <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span>STIBA Makassar
-          </div>
-          <Link to="/admin" className="text-base text-gray-500 hover:text-gray-700">Admin</Link>
+    <div className="overflow-x-hidden min-h-screen bg-[#f2fdf5]">
+      <nav className="header w-full sticky top-0 left-0 right-0 z-[99] px-4 py-4 flex items-center justify-between font-ysabeau font-medium text-xl lg:text-2xl text-gray-500 bg-[#f2fdf5]">
+        <div className="flex items-center">
+          <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span>STIBA Makassar
         </div>
-        <div className="flex flex-col items-center pt-10 w-full min-h-screen pb-12 bg-[#f2fdf5]">
+        <Link to="/admin" className="text-base text-gray-500 hover:text-gray-700">Admin</Link>
+      </nav>
+      
+      <div className="flex flex-col items-center pt-6 pb-8 px-4">
           {/* Campaign Section */}
           {campaigns.length > 0 ? (
             <div className="w-[18rem] md:w-[28rem] lg:w-[35rem]">
@@ -63,11 +63,10 @@ function HomePage() {
             </div>
           )}
 
-          <div className="mt-8 text-base md:text-lg font-ysabeau text-[#8f8f8f]">
-            © STIBA Makassar
-          </div>
+        <div className="mt-8 text-base md:text-lg font-ysabeau text-[#8f8f8f]">
+          © STIBA Makassar
         </div>
-      </nav>
+      </div>
     </div>
   );
 }
