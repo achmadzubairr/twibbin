@@ -5,7 +5,9 @@ import {
   getCampaigns, 
   deleteCampaign, 
   toggleCampaignStatus,
-  getCampaignAnalytics 
+  getCampaignAnalytics,
+  updateCampaign,
+  getCampaignById
 } from '../../services/supabaseCampaignService';
 import { 
   getAllDownloads, 
@@ -30,6 +32,15 @@ function AdminPage() {
   });
   const [campaignMessage, setCampaignMessage] = useState('');
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
+  
+  // Edit campaign states
+  const [editingCampaign, setEditingCampaign] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    slug: '',
+    templateFile: null
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // Analytics states
   const [analytics, setAnalytics] = useState([]);
@@ -99,21 +110,78 @@ function AdminPage() {
   };
 
   const handleDeleteCampaign = async (campaignId) => {
-    if (window.confirm('Apakah anda yakin ingin menghapus campaign ini?')) {
+    if (window.confirm('Apakah anda yakin ingin mengarsipkan campaign ini? Campaign akan disembunyikan dari public tapi data analytics tetap tersimpan.')) {
       try {
         const result = await deleteCampaign(campaignId);
         
         if (result.success) {
           setCampaigns(campaigns.filter(c => c.id !== campaignId));
-          setCampaignMessage('Campaign berhasil dihapus');
+          setCampaignMessage('Campaign berhasil diarsipkan');
         } else {
-          setCampaignMessage(`Gagal menghapus campaign: ${result.error}`);
+          setCampaignMessage(`Gagal mengarsipkan campaign: ${result.error}`);
         }
       } catch (error) {
         console.error('Error deleting campaign:', error);
-        setCampaignMessage('Terjadi kesalahan saat menghapus campaign');
+        setCampaignMessage('Terjadi kesalahan saat mengarsipkan campaign');
       }
     }
+  };
+
+  const handleEditCampaign = async (campaign) => {
+    setEditingCampaign(campaign.id);
+    setEditForm({
+      name: campaign.name,
+      slug: campaign.slug,
+      templateFile: null
+    });
+    setActiveTab('create'); // Switch to create tab for editing
+  };
+
+  const handleUpdateCampaign = async () => {
+    if (!editForm.name || !editForm.slug) {
+      setCampaignMessage('Nama campaign dan slug wajib diisi');
+      return;
+    }
+
+    // Validate slug format
+    const slugRegex = /^[a-z0-9-]+$/;
+    if (!slugRegex.test(editForm.slug)) {
+      setCampaignMessage('Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung');
+      return;
+    }
+
+    setIsUpdating(true);
+    setCampaignMessage('Mengupdate campaign...');
+
+    try {
+      const result = await updateCampaign(editingCampaign, editForm);
+      
+      if (result.success) {
+        // Update campaigns list
+        setCampaigns(campaigns.map(c => 
+          c.id === editingCampaign ? result.data : c
+        ));
+        
+        // Reset edit state
+        setEditingCampaign(null);
+        setEditForm({ name: '', slug: '', templateFile: null });
+        setCampaignMessage('Campaign berhasil diupdate');
+        setActiveTab('campaigns'); // Switch back to campaigns list
+      } else {
+        setCampaignMessage(`Gagal update campaign: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating campaign:', error);
+      setCampaignMessage('Terjadi kesalahan saat update campaign');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCampaign(null);
+    setEditForm({ name: '', slug: '', templateFile: null });
+    setCampaignMessage('');
   };
 
   const handleToggleCampaignStatus = async (campaignId) => {
@@ -240,11 +308,13 @@ function AdminPage() {
             </button>
           </div>
           
-          {/* Buat Campaign Tab */}
+          {/* Buat/Edit Campaign Tab */}
           {activeTab === 'create' && (
             <>
               <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-4">Buat Campaign Baru</h2>
+                <h2 className="text-xl font-semibold mb-4">
+                  {editingCampaign ? 'Edit Campaign' : 'Buat Campaign Baru'}
+                </h2>
                 
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -253,14 +323,22 @@ function AdminPage() {
                   <input
                     type="text"
                     className="w-full p-2 border border-gray-300 rounded-md"
-                    value={campaignForm.name}
+                    value={editingCampaign ? editForm.name : campaignForm.name}
                     onChange={(e) => {
                       const name = e.target.value;
-                      setCampaignForm({
-                        ...campaignForm,
-                        name,
-                        slug: generateSlugFromName(name)
-                      });
+                      if (editingCampaign) {
+                        setEditForm({
+                          ...editForm,
+                          name,
+                          slug: editForm.slug // Don't auto-generate slug when editing
+                        });
+                      } else {
+                        setCampaignForm({
+                          ...campaignForm,
+                          name,
+                          slug: generateSlugFromName(name)
+                        });
+                      }
                     }}
                     placeholder="Masukkan nama campaign"
                   />
@@ -273,35 +351,49 @@ function AdminPage() {
                   <input
                     type="text"
                     className="w-full p-2 border border-gray-300 rounded-md"
-                    value={campaignForm.slug}
-                    onChange={(e) => setCampaignForm({...campaignForm, slug: e.target.value})}
+                    value={editingCampaign ? editForm.slug : campaignForm.slug}
+                    onChange={(e) => {
+                      const slug = e.target.value;
+                      if (editingCampaign) {
+                        setEditForm({...editForm, slug});
+                      } else {
+                        setCampaignForm({...campaignForm, slug});
+                      }
+                    }}
                     placeholder="url-slug-campaign"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    URL: {window.location.origin}/{campaignForm.slug}
+                    URL: {window.location.origin}/{editingCampaign ? editForm.slug : campaignForm.slug}
                   </p>
                 </div>
 
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Template Campaign
+                    Template Campaign {editingCampaign && '(kosongkan jika tidak ingin mengubah template)'}
                   </label>
                   <input
                     type="file"
                     accept="image/*"
                     className="w-full p-2 border border-gray-300 rounded-md"
-                    onChange={(e) => setCampaignForm({...campaignForm, templateFile: e.target.files[0]})}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (editingCampaign) {
+                        setEditForm({...editForm, templateFile: file});
+                      } else {
+                        setCampaignForm({...campaignForm, templateFile: file});
+                      }
+                    }}
                   />
                 </div>
 
-                {campaignForm.templateFile && (
+                {(editingCampaign ? editForm.templateFile : campaignForm.templateFile) && (
                   <div className="mb-4">
                     <p className="text-sm text-gray-500">
-                      File terpilih: {campaignForm.templateFile.name} ({(campaignForm.templateFile.size / 1024).toFixed(2)} KB)
+                      File terpilih: {(editingCampaign ? editForm.templateFile : campaignForm.templateFile).name} ({((editingCampaign ? editForm.templateFile : campaignForm.templateFile).size / 1024).toFixed(2)} KB)
                     </p>
                     <div className="mt-2 border rounded-md p-2 bg-gray-50">
                       <img
-                        src={URL.createObjectURL(campaignForm.templateFile)}
+                        src={URL.createObjectURL(editingCampaign ? editForm.templateFile : campaignForm.templateFile)}
                         alt="Preview"
                         className="max-h-64 mx-auto"
                       />
@@ -309,13 +401,32 @@ function AdminPage() {
                   </div>
                 )}
 
-                <button
-                  className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2] mb-4"
-                  onClick={handleCreateCampaign}
-                  disabled={isCreatingCampaign || !campaignForm.name || !campaignForm.slug || !campaignForm.templateFile}
-                >
-                  {isCreatingCampaign ? 'Membuat Campaign...' : 'Buat Campaign'}
-                </button>
+                {editingCampaign ? (
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      className="flex-1 h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]"
+                      onClick={handleUpdateCampaign}
+                      disabled={isUpdating || !editForm.name || !editForm.slug}
+                    >
+                      {isUpdating ? 'Mengupdate...' : 'Update Campaign'}
+                    </button>
+                    <button
+                      className="flex-1 h-12 font-roboto bg-gray-500 text-white rounded-xl hover:bg-gray-600"
+                      onClick={handleCancelEdit}
+                      disabled={isUpdating}
+                    >
+                      Batal
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2] mb-4"
+                    onClick={handleCreateCampaign}
+                    disabled={isCreatingCampaign || !campaignForm.name || !campaignForm.slug || !campaignForm.templateFile}
+                  >
+                    {isCreatingCampaign ? 'Membuat Campaign...' : 'Buat Campaign'}
+                  </button>
+                )}
 
                 {campaignMessage && (
                   <div className={`p-2 rounded-md text-center ${campaignMessage.includes('berhasil') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -361,24 +472,32 @@ function AdminPage() {
                           />
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-2 gap-2 mb-2">
                           <button
-                            className="flex-1 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                            className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
                             onClick={() => window.open(`${window.location.origin}/${campaign.slug}`, '_blank')}
                           >
                             Lihat
                           </button>
                           <button
-                            className={`flex-1 px-3 py-1 text-sm rounded ${campaign.is_active ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'} text-white`}
+                            className="px-3 py-1 text-sm bg-purple-500 text-white rounded hover:bg-purple-600"
+                            onClick={() => handleEditCampaign(campaign)}
+                          >
+                            Edit
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            className={`px-3 py-1 text-sm rounded ${campaign.is_active ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'} text-white`}
                             onClick={() => handleToggleCampaignStatus(campaign.id)}
                           >
                             {campaign.is_active ? 'Nonaktifkan' : 'Aktifkan'}
                           </button>
                           <button
-                            className="flex-1 px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+                            className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
                             onClick={() => handleDeleteCampaign(campaign.id)}
                           >
-                            Hapus
+                            Arsipkan
                           </button>
                         </div>
                       </div>
