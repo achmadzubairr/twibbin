@@ -32,21 +32,28 @@ export const createCustomPositionedImage = async (templateUrl, userPhoto, transf
           
           // Get transform data or use defaults
           const transform = transformData?.transform || { x: 0, y: 0, scale: 1 };
+          const previewSize = transformData?.previewSize || { width: outputWidth, height: outputHeight };
           
-          // Calculate scaling factor from preview to final size
-          const previewSize = Math.min(outputWidth, outputHeight); // Assuming square preview
-          const scaleFactor = outputWidth / previewSize;
+          console.log('Transform data:', transform);
+          console.log('Preview size:', previewSize);
+          
+          // Calculate scale factor from preview to final canvas
+          const scaleFactorX = outputWidth / previewSize.width;
+          const scaleFactorY = outputHeight / previewSize.height;
           
           // Apply user photo as background with transforms
           ctx.save();
           
-          // Translate to center, then apply user transforms, then translate back
+          // First, translate to center of canvas
           ctx.translate(outputWidth / 2, outputHeight / 2);
+          
+          // Apply scale
           ctx.scale(transform.scale, transform.scale);
-          ctx.translate(
-            (transform.x * scaleFactor) / transform.scale,
-            (transform.y * scaleFactor) / transform.scale
-          );
+          
+          // Apply translation (scale preview pixels to final canvas pixels)
+          ctx.translate(transform.x * scaleFactorX, transform.y * scaleFactorY);
+          
+          // Translate back to draw from top-left corner
           ctx.translate(-outputWidth / 2, -outputHeight / 2);
           
           // Draw user photo to fill the canvas

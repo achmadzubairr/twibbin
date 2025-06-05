@@ -29,10 +29,15 @@ const PhotoEditor = ({
 
   // Notify parent of changes
   useEffect(() => {
-    if (onPositionChange) {
+    if (onPositionChange && containerRef.current) {
+      const containerSize = containerRef.current.getBoundingClientRect();
       onPositionChange({
         transform: photoTransform,
-        photoPreview
+        photoPreview,
+        previewSize: {
+          width: containerSize.width,
+          height: containerSize.height
+        }
       });
     }
   }, [photoTransform, photoPreview, onPositionChange]);
@@ -47,11 +52,9 @@ const PhotoEditor = ({
   // Touch start handler
   const handleTouchStart = (e) => {
     e.preventDefault();
-    console.log('Touch start - touches:', e.touches.length);
     
     if (e.touches.length === 1) {
       // Single touch - start dragging
-      console.log('Starting drag');
       setIsDragging(true);
       setLastTouch({
         x: e.touches[0].clientX,
@@ -60,12 +63,10 @@ const PhotoEditor = ({
       setLastDistance(null); // Clear distance for single touch
     } else if (e.touches.length === 2) {
       // Two touches - start pinch zoom
-      console.log('Starting pinch zoom');
       setIsDragging(false);
       setLastTouch(null); // Clear single touch
       const distance = getDistance(e.touches[0], e.touches[1]);
       setLastDistance(distance);
-      console.log('Initial distance:', distance);
     }
   };
 
@@ -92,13 +93,11 @@ const PhotoEditor = ({
       // Two touches - pinch zoom
       const newDistance = getDistance(e.touches[0], e.touches[1]);
       const scaleChange = newDistance / lastDistance;
-      console.log('Pinch zoom - distance:', newDistance, 'scale change:', scaleChange);
       
       // Apply scale change with bounds checking
       setPhotoTransform(prev => {
         const newScale = prev.scale * scaleChange;
         const clampedScale = Math.max(0.5, Math.min(3, newScale));
-        console.log('New scale:', clampedScale);
         return {
           ...prev,
           scale: clampedScale
