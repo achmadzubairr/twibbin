@@ -39,6 +39,11 @@ Twibbin adalah aplikasi web React yang memungkinkan pengguna membuat kartu ucapa
 - **Dynamic Meta Tags**: Optimized untuk social media preview
 - **Mobile-first Design**: Touch-optimized buttons
 
+### 🧭 Navigation Features
+- **Logo Navigation**: Klik logo atau teks "STIBA Makassar" untuk ke home
+- **Clean UI**: Removed redundant "Beranda" buttons for cleaner interface
+- **Responsive Header**: Consistent navigation across all pages
+
 ### 🎯 Technical Features
 - **Responsive Design**: Mobile-first dengan Tailwind CSS
 - **Performance Optimized**: Image processing dan caching
@@ -85,10 +90,9 @@ src/
 │   │   └── HomePage.js  # Landing page
 │   └── index.js         # Page exports
 ├── services/            # API services
-│   ├── campaignService.js
-│   ├── downloadService.js
-│   ├── supabaseCampaignService.js
-│   └── templateService.js
+│   ├── adminService.js           # Admin authentication & settings
+│   ├── downloadService.js        # Download tracking & analytics
+│   └── supabaseCampaignService.js # Campaign CRUD operations
 ├── utils/               # Utility functions
 │   ├── component-handler.ts # Form handlers
 │   └── imageProcessor.js    # Image processing
@@ -121,88 +125,24 @@ REACT_APP_CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 ```
 
 ### 3. Database Setup
-Jalankan SQL script berikut di Supabase SQL Editor:
+Jalankan SQL script `database-complete-setup.sql` di Supabase SQL Editor.
 
-```sql
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
+File ini berisi semua setup database yang diperlukan termasuk:
+- **Extensions**: UUID generator
+- **Tables**: campaigns, downloads, admin_settings
+- **Indexes**: Optimized untuk performance 
+- **Triggers**: Auto-update timestamps
+- **Views**: Analytics dan soft-deleted campaigns
+- **Functions**: Utility functions untuk analytics dan soft delete
+- **RLS Policies**: Row level security
+- **Sample Data**: Optional untuk testing
 
--- Create campaigns table
-CREATE TABLE campaigns (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    template_url TEXT NOT NULL,
-    is_active BOOLEAN DEFAULT true,
-    campaign_type VARCHAR(50) DEFAULT 'text' CHECK (campaign_type IN ('text', 'photo')),
-    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create downloads table
-CREATE TABLE downloads (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
-    user_name VARCHAR(255) NOT NULL,
-    additional_text VARCHAR(255),
-    download_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    ip_address INET,
-    user_agent TEXT,
-    filename VARCHAR(255),
-    random_id VARCHAR(50)
-);
-
--- Create indexes
-CREATE INDEX idx_campaigns_slug ON campaigns(slug);
-CREATE INDEX idx_campaigns_active ON campaigns(is_active);
-CREATE INDEX idx_campaigns_deleted_at ON campaigns(deleted_at);
-CREATE INDEX idx_downloads_campaign_id ON downloads(campaign_id);
-CREATE INDEX idx_downloads_time ON downloads(download_time);
-
--- Enable RLS
-ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
-ALTER TABLE downloads ENABLE ROW LEVEL SECURITY;
-
--- Create policies
-CREATE POLICY \"Allow read active campaigns\" ON campaigns 
-    FOR SELECT USING (deleted_at IS NULL);
-CREATE POLICY \"Allow all operations campaigns\" ON campaigns 
-    FOR ALL USING (true);
-CREATE POLICY \"Allow all operations downloads\" ON downloads 
-    FOR ALL USING (true);
-
--- Create analytics view
-CREATE VIEW campaign_analytics AS
-SELECT 
-    c.id,
-    c.name,
-    c.slug,
-    c.is_active,
-    c.campaign_type,
-    c.created_at,
-    COUNT(d.id) as total_downloads,
-    COUNT(DISTINCT d.user_name) as unique_users,
-    COUNT(CASE WHEN d.download_time >= NOW() - INTERVAL '24 hours' THEN 1 END) as downloads_today,
-    COUNT(CASE WHEN d.download_time >= NOW() - INTERVAL '7 days' THEN 1 END) as downloads_this_week
-FROM campaigns c
-LEFT JOIN downloads d ON c.id = d.campaign_id
-WHERE c.deleted_at IS NULL
-GROUP BY c.id, c.name, c.slug, c.is_active, c.campaign_type, c.created_at
-ORDER BY total_downloads DESC;
-
--- Create updated_at trigger
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_campaigns_updated_at BEFORE UPDATE
-    ON campaigns FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+```bash
+# Copy dan paste isi file database-complete-setup.sql ke Supabase SQL Editor
+cat database-complete-setup.sql
 ```
+
+**Catatan**: Semua file SQL sebelumnya telah dikonsolidasi ke dalam `database-complete-setup.sql`
 
 ### 4. Cloudinary Setup (Optional)
 1. Daftar di [Cloudinary](https://cloudinary.com/)
@@ -226,7 +166,7 @@ Aplikasi akan berjalan di http://localhost:3000
 
 #### 1. Akses Admin Panel
 - Buka `/admin`
-- Default password: \"admin123\" (ganti di `AdminPage.js`)
+- Masukkan password admin (tersimpan di database `admin_settings` table)
 
 #### 2. Membuat Campaign
 1. Pilih tab \"Buat Campaign\"
@@ -250,11 +190,15 @@ Aplikasi akan berjalan di http://localhost:3000
 
 ### Untuk User
 
+#### Navigasi
+- **Home**: Klik logo atau teks "STIBA Makassar" di header untuk kembali ke beranda
+- **Admin**: Klik link "Admin" di header untuk akses admin panel
+
 #### Text Campaign
-1. Pilih template di homepage
+1. Pilih template di homepage atau akses langsung via URL slug
 2. Input nama (maksimal 25 karakter)
 3. Input teks tambahan (opsional, maksimal 25 karakter)
-4. Klik \"Unduh\" untuk download
+4. Klik "Unduh" untuk download
 
 #### Photo Campaign
 1. Pilih template photo campaign
@@ -262,7 +206,7 @@ Aplikasi akan berjalan di http://localhost:3000
 3. Atur posisi foto:
    - **Mobile**: Drag untuk geser, pinch untuk zoom
    - **Desktop**: Drag dengan mouse, scroll untuk zoom
-4. Klik \"Unduh Gambar\" ketika posisi sudah sesuai
+4. Klik "Unduh Gambar" ketika posisi sudah sesuai
 
 #### Sharing
 - Gunakan tombol social media di bawah template
@@ -295,10 +239,11 @@ Aplikasi akan berjalan di http://localhost:3000
 - Primary color: `bg-[#14eb99]` (emerald)
 
 #### 3. Admin Password
-```javascript
-// src/pages/admin/AdminPage.js
-const ADMIN_PASSWORD = 'your-new-password';
-```
+Admin password disimpan di database menggunakan `adminService.js`. Untuk mengubah password:
+1. Login ke admin panel
+2. Buka tab "Profile" 
+3. Masukkan password lama dan password baru
+4. Klik "Ubah Password"
 
 ## 🚀 Deployment
 
@@ -345,12 +290,22 @@ Pastikan semua environment variables tersedia di platform hosting.
 | filename | VARCHAR(255) | Generated filename |
 | random_id | VARCHAR(50) | Random identifier |
 
+### admin_settings
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| setting_key | VARCHAR(100) | Setting identifier (unique) |
+| setting_value | TEXT | Setting value (hashed for passwords) |
+| created_at | TIMESTAMP | Creation time |
+| updated_at | TIMESTAMP | Last update time |
+
 ## 🔒 Security
 
 ### Row Level Security (RLS)
-- Campaigns: Read access untuk active campaigns
-- Downloads: Full access untuk tracking
-- Admin operations: Controlled via application logic
+- **Campaigns**: Read access untuk active campaigns, soft delete protection
+- **Downloads**: Full access untuk tracking dan analytics
+- **Admin Settings**: Full access untuk configuration management
+- **Views**: Automated filtering untuk analytics dan soft-deleted items
 
 ### Input Validation
 - File upload: Image type dan size validation (5MB limit)
