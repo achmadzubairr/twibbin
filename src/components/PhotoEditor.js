@@ -1,17 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
-import './PhotoEditor.css';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 
 const PhotoEditor = ({ 
   templateUrl, 
   userPhoto, 
-  onPositionChange, 
-  initialPosition = { x: 50, y: 50, size: 30, scale: 1 },
-  currentPosition = initialPosition
+  onPositionChange
 }) => {
-  const [position, setPosition] = useState(currentPosition);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoTransform, setPhotoTransform] = useState({
+    x: 0,
+    y: 0,
+    scale: 1
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const [lastTouch, setLastTouch] = useState(null);
+  const [lastDistance, setLastDistance] = useState(null);
+  
   const containerRef = useRef(null);
   const photoRef = useRef(null);
 
@@ -24,112 +27,126 @@ const PhotoEditor = ({
     }
   }, [userPhoto]);
 
-  // Sync with parent position
+  // Notify parent of changes
   useEffect(() => {
-    setPosition(currentPosition);
-  }, [currentPosition]);
+    if (onPositionChange) {
+      onPositionChange({
+        transform: photoTransform,
+        photoPreview
+      });
+    }
+  }, [photoTransform, photoPreview, onPositionChange]);
 
-  // Notify parent component when position changes from drag only
-  const notifyPositionChange = (newPosition) => {
-    setPosition(newPosition);
-    onPositionChange(newPosition);
+  // Get distance between two touches
+  const getDistance = (touch1, touch2) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   };
 
-  const handleMouseDown = (e) => {
+  // Touch start handler
+  const handleTouchStart = (e) => {
     e.preventDefault();
-    const rect = containerRef.current.getBoundingClientRect();
-    const photoElement = photoRef.current;
-    const photoRect = photoElement.getBoundingClientRect();
     
-    // Check if click is on the photo
-    if (
-      e.clientX >= photoRect.left &&
-      e.clientX <= photoRect.right &&
-      e.clientY >= photoRect.top &&
-      e.clientY <= photoRect.bottom
-    ) {
+    if (e.touches.length === 1) {
+      // Single touch - start dragging
       setIsDragging(true);
-      setDragStart({
-        x: e.clientX - rect.left - (position.x * rect.width / 100),
-        y: e.clientY - rect.top - (position.y * rect.height / 100)
+      setLastTouch({
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY
       });
+    } else if (e.touches.length === 2) {
+      // Two touches - start pinch zoom
+      setIsDragging(false);
+      const distance = getDistance(e.touches[0], e.touches[1]);
+      setLastDistance(distance);
     }
   };
 
-  const handleMouseMove = (e) => {
-    if (!isDragging || !containerRef.current) return;
+  // Touch move handler
+  const handleTouchMove = useCallback((e) => {
+    e.preventDefault();
 
-    const rect = containerRef.current.getBoundingClientRect();
-    const newX = ((e.clientX - rect.left - dragStart.x) / rect.width) * 100;
-    const newY = ((e.clientY - rect.top - dragStart.y) / rect.height) * 100;
+    if (e.touches.length === 1 && isDragging && lastTouch) {
+      // Single touch - drag photo
+      const deltaX = e.touches[0].clientX - lastTouch.x;
+      const deltaY = e.touches[0].clientY - lastTouch.y;
+      
+      setPhotoTransform(prev => ({
+        ...prev,
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
+      
+      setLastTouch({
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY
+      });
+    } else if (e.touches.length === 2 && lastDistance) {
+      // Two touches - pinch zoom
+      const distance = getDistance(e.touches[0], e.touches[1]);
+      const scaleChange = distance / lastDistance;
+      
+      setPhotoTransform(prev => ({
+        ...prev,
+        scale: Math.max(0.5, Math.min(3, prev.scale * scaleChange))
+      }));
+      
+      setLastDistance(distance);
+    }
+  }, [isDragging, lastTouch, lastDistance]);
 
-    // Constrain to container bounds
-    const constrainedX = Math.max(0, Math.min(100, newX));
-    const constrainedY = Math.max(0, Math.min(100, newY));
-
-    const newPosition = {
-      ...position,
-      x: constrainedX,
-      y: constrainedY
-    };
-
-    notifyPositionChange(newPosition);
+  // Touch end handler
+  const handleTouchEnd = (e) => {
+    if (e.touches.length === 0) {
+      setIsDragging(false);
+      setLastTouch(null);
+      setLastDistance(null);
+    }
   };
+
+  // Mouse events for desktop support
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+    setLastTouch({
+      x: e.clientX,
+      y: e.clientY
+    });
+  };
+
+  const handleMouseMove = useCallback((e) => {
+    if (isDragging && lastTouch) {
+      const deltaX = e.clientX - lastTouch.x;
+      const deltaY = e.clientY - lastTouch.y;
+      
+      setPhotoTransform(prev => ({
+        ...prev,
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
+      
+      setLastTouch({
+        x: e.clientX,
+        y: e.clientY
+      });
+    }
+  }, [isDragging, lastTouch]);
 
   const handleMouseUp = () => {
     setIsDragging(false);
+    setLastTouch(null);
   };
 
-
-  const resetPosition = () => {
-    setPosition({ x: 50, y: 50, size: 30, scale: 1 });
-  };
-
-  // Touch events for mobile support
-  const handleTouchStart = (e) => {
+  // Wheel event for desktop zoom
+  const handleWheel = (e) => {
     e.preventDefault();
-    const touch = e.touches[0];
-    const rect = containerRef.current.getBoundingClientRect();
-    const photoElement = photoRef.current;
-    const photoRect = photoElement.getBoundingClientRect();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
     
-    if (
-      touch.clientX >= photoRect.left &&
-      touch.clientX <= photoRect.right &&
-      touch.clientY >= photoRect.top &&
-      touch.clientY <= photoRect.bottom
-    ) {
-      setIsDragging(true);
-      setDragStart({
-        x: touch.clientX - rect.left - (position.x * rect.width / 100),
-        y: touch.clientY - rect.top - (position.y * rect.height / 100)
-      });
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isDragging || !containerRef.current) return;
-    e.preventDefault();
-
-    const touch = e.touches[0];
-    const rect = containerRef.current.getBoundingClientRect();
-    const newX = ((touch.clientX - rect.left - dragStart.x) / rect.width) * 100;
-    const newY = ((touch.clientY - rect.top - dragStart.y) / rect.height) * 100;
-
-    const constrainedX = Math.max(0, Math.min(100, newX));
-    const constrainedY = Math.max(0, Math.min(100, newY));
-
-    const newPosition = {
-      ...position,
-      x: constrainedX,
-      y: constrainedY
-    };
-
-    notifyPositionChange(newPosition);
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
+    setPhotoTransform(prev => ({
+      ...prev,
+      scale: Math.max(0.5, Math.min(3, prev.scale * delta))
+    }));
   };
 
   // Add global event listeners
@@ -147,46 +164,50 @@ const PhotoEditor = ({
         document.removeEventListener('touchend', handleTouchEnd);
       };
     }
-  }, [isDragging, dragStart]);
+  }, [isDragging, lastTouch, handleMouseMove, handleTouchMove]);
+
+  // Reset photo position
+  const resetPosition = () => {
+    setPhotoTransform({
+      x: 0,
+      y: 0,
+      scale: 1
+    });
+  };
 
   if (!userPhoto || !photoPreview) {
     return (
       <div className="text-center py-8 text-gray-500">
-        Upload foto untuk mulai mengedit posisi
+        Upload foto untuk mulai mengedit
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Preview Container */}
+      {/* Main Photo Editor - Template with Photo Overlay */}
       <div 
         ref={containerRef}
-        className="relative w-full bg-gray-50 overflow-hidden cursor-crosshair"
+        className="relative w-full bg-gray-50 overflow-hidden touch-none select-none"
         style={{ aspectRatio: '1/1' }}
-        onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
+        onMouseDown={handleMouseDown}
+        onWheel={handleWheel}
       >
         {/* User Photo - Background Layer */}
         <div
           ref={photoRef}
-          className={`absolute rounded-full overflow-hidden border-2 ${isDragging ? 'border-blue-500 cursor-grabbing' : 'border-white cursor-grab'} shadow-lg`}
-          style={{
-            left: `${position.x}%`,
-            top: `${position.y}%`,
-            width: `${position.size}%`,
-            height: `${position.size}%`,
-            transform: `translate(-50%, -50%)`,
-            zIndex: 1
-          }}
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ zIndex: 1 }}
         >
           <img
             src={photoPreview}
-            alt="Your photo"
+            alt="Your uploaded"
             className="w-full h-full object-cover"
             style={{
-              transform: `scale(${position.scale})`,
-              transformOrigin: 'center'
+              transform: `translate(${photoTransform.x}px, ${photoTransform.y}px) scale(${photoTransform.scale})`,
+              transformOrigin: 'center',
+              transition: isDragging ? 'none' : 'transform 0.1s ease-out'
             }}
             draggable={false}
           />
@@ -201,16 +222,21 @@ const PhotoEditor = ({
           crossOrigin="anonymous"
         />
 
-        {/* Positioning Guide */}
-        {isDragging && (
-          <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 3 }}>
-            {/* Center lines */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-blue-400 opacity-50"></div>
-            <div className="absolute top-1/2 left-0 right-0 h-px bg-blue-400 opacity-50"></div>
+        {/* Touch instruction overlay */}
+        <div className="absolute top-2 left-2 right-2 text-center z-10">
+          <div className="bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+            👆 Drag foto • 👌 Pinch untuk zoom
           </div>
-        )}
-      </div>
+        </div>
 
+        {/* Reset button - positioned at bottom right */}
+        <button
+          onClick={resetPosition}
+          className="absolute bottom-3 right-3 z-10 px-3 py-2 bg-white bg-opacity-90 text-gray-700 rounded-full shadow-lg hover:bg-opacity-100 transition-all text-xs font-medium"
+        >
+          Reset
+        </button>
+      </div>
     </div>
   );
 };

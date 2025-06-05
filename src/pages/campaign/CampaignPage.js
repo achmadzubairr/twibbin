@@ -1,19 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { handleInputChange, refCallback } from '../../utils/component-handler.ts';
 import html2canvas from 'html2canvas';
 import inLogo from '../../images/in-logo.png';
-import defaultTemplate from '../../images/template.jpg';
 import { Link } from 'react-router-dom';
 import { getCampaignBySlug } from '../../services/supabaseCampaignService';
 import { trackDownload } from '../../services/downloadService';
-import { createCircularImage, validateImageFile, overlayImageOnTemplate, createCustomPositionedImage } from '../../utils/imageProcessor';
+import { validateImageFile, createCustomPositionedImage } from '../../utils/imageProcessor';
 import PhotoEditor from '../../components/PhotoEditor';
-import '../../../src/components/PhotoEditor.css';
 
 function CampaignPage() {
   const { slug } = useParams();
-  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [additionalText, setAdditionalText] = useState('');
   const [pregeneratedImage, setPregeneratedImage] = useState(null);
@@ -23,11 +20,10 @@ function CampaignPage() {
   
   // Photo campaign states
   const [userPhoto, setUserPhoto] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
   const [processedImage, setProcessedImage] = useState(null);
   const [uploadError, setUploadError] = useState('');
   const [processingPhoto, setProcessingPhoto] = useState(false);
-  const [photoPosition, setPhotoPosition] = useState({ x: 50, y: 50, size: 30, scale: 1 });
+  const [transformData, setTransformData] = useState(null);
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
   const [isUpdatingImage, setIsUpdatingImage] = useState(false);
   const updateTimeoutRef = useRef(null);
@@ -88,14 +84,11 @@ function CampaignPage() {
 
       // Set user photo
       setUserPhoto(file);
-      const previewUrl = URL.createObjectURL(file);
-      setPhotoPreview(previewUrl);
 
       // Show photo editor
       setShowPhotoEditor(true);
 
-      // Generate initial processed image with default position
-      await updateProcessedImage(file, photoPosition);
+      // No need to generate initial image - PhotoEditor will handle it
     } catch (error) {
       console.error('Error processing photo:', error);
       setUploadError('Gagal memproses foto. Coba lagi.');
@@ -104,15 +97,15 @@ function CampaignPage() {
     }
   };
 
-  const updateProcessedImage = async (photo = userPhoto, position = photoPosition) => {
-    if (!photo || !campaign) return;
+  const updateProcessedImage = async (photo = userPhoto, newTransformData = transformData) => {
+    if (!photo || !campaign || !newTransformData) return;
 
     try {
       setIsUpdatingImage(true);
       const finalImage = await createCustomPositionedImage(
         campaign.template_url,
         photo,
-        position,
+        newTransformData,
         1000,
         1000
       );
@@ -125,27 +118,15 @@ function CampaignPage() {
     }
   };
 
-  const handlePositionChange = async (newPosition) => {
-    setPhotoPosition(newPosition);
-    await updateProcessedImage(userPhoto, newPosition);
-  };
-
-  const handleSizeChange = async (newSize) => {
-    const newPosition = { ...photoPosition, size: newSize };
-    setPhotoPosition(newPosition);
-    await updateProcessedImage(userPhoto, newPosition);
-  };
-
-  const handleScaleChange = async (newScale) => {
-    const newPosition = { ...photoPosition, scale: newScale };
-    setPhotoPosition(newPosition);
-    await updateProcessedImage(userPhoto, newPosition);
-  };
-
-  const handleResetPosition = async () => {
-    const resetPosition = { x: 50, y: 50, size: 30, scale: 1 };
-    setPhotoPosition(resetPosition);
-    await updateProcessedImage(userPhoto, resetPosition);
+  const handlePositionChange = async (newTransformData) => {
+    setTransformData(newTransformData);
+    // Auto-update processed image after short delay to avoid performance issues during gestures
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+    updateTimeoutRef.current = setTimeout(() => {
+      updateProcessedImage(userPhoto, newTransformData);
+    }, 500);
   };
 
   const cleanNameForFilename = (name) => {
@@ -157,7 +138,7 @@ function CampaignPage() {
 
   const handleDownloadImage = async () => {
     // Photo campaign download
-    if (campaign?.campaign_type === 'photo' && processedImage) {
+    if (campaign?.campaign_type === 'photo' && transformData) {
       try {
         // Track download in database first
         const trackResult = await trackDownload({
@@ -171,9 +152,18 @@ function CampaignPage() {
           console.warn('Failed to track download:', trackResult.error);
         }
 
-        // Download the processed image
+        // Generate final image with current transform data
+        const finalImage = await createCustomPositionedImage(
+          campaign.template_url,
+          userPhoto,
+          transformData,
+          1000,
+          1000
+        );
+
+        // Download the final image
         const a = document.createElement('a');
-        a.href = processedImage;
+        a.href = finalImage;
         const fallbackFilename = `${campaign.slug}_photo_${generateRandomId()}.jpg`;
         a.download = trackResult.filename || fallbackFilename;
         a.click();
@@ -266,18 +256,16 @@ function CampaignPage() {
                 <div className="w-full relative">
                   {showPhotoEditor && userPhoto ? (
                     // Show PhotoEditor integrated in main preview
-                    <div className="w-full" style={{ aspectRatio: '1/1' }}>
+                    <div className="w-full">
                       <PhotoEditor
                         templateUrl={campaign.template_url}
                         userPhoto={userPhoto}
                         onPositionChange={handlePositionChange}
-                        initialPosition={photoPosition}
-                        currentPosition={photoPosition}
                       />
                     </div>
                   ) : processedImage ? (
                     // Show final processed image
-                    <img src={processedImage} alt="Preview with your photo" className="w-full" />
+                    <img src={processedImage} alt="Final preview" className="w-full" />
                   ) : (
                     // Show template only
                     <img src={campaign.template_url} alt="Template" crossOrigin="anonymous"/>
@@ -332,9 +320,8 @@ function CampaignPage() {
                           onClick={() => {
                             setShowPhotoEditor(false);
                             setUserPhoto(null);
-                            setPhotoPreview(null);
                             setProcessedImage(null);
-                            setPhotoPosition({ x: 50, y: 50, size: 30, scale: 1 });
+                            setTransformData(null);
                           }}
                           className="text-sm text-gray-500 hover:text-gray-700"
                         >
@@ -342,64 +329,18 @@ function CampaignPage() {
                         </button>
                       </div>
                       
-                      <div className="text-sm text-gray-600 text-center mb-4">
-                        <p>💡 Drag foto di atas untuk mengubah posisi</p>
-                      </div>
-
-                      {/* Photo Controls */}
-                      <div className="space-y-4">
-                        {/* Size Control */}
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-2">
-                            Ukuran Foto: {photoPosition.size}%
-                          </label>
-                          <input
-                            type="range"
-                            min="10"
-                            max="80"
-                            value={photoPosition.size}
-                            onChange={(e) => handleSizeChange(parseInt(e.target.value))}
-                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                          />
-                        </div>
-
-                        {/* Scale Control */}
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-2">
-                            Zoom Foto: {(photoPosition.scale * 100).toFixed(0)}%
-                          </label>
-                          <input
-                            type="range"
-                            min="0.5"
-                            max="3"
-                            step="0.1"
-                            value={photoPosition.scale}
-                            onChange={(e) => handleScaleChange(parseFloat(e.target.value))}
-                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                          />
-                        </div>
-
-                        {/* Reset Button */}
-                        <button
-                          onClick={handleResetPosition}
-                          className="w-full py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
-                        >
-                          Reset ke Tengah
-                        </button>
-                      </div>
-                      
                       {isUpdatingImage && (
-                        <div className="flex items-center justify-center py-2">
+                        <div className="flex items-center justify-center py-2 mb-4">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#14eb99] mr-2"></div>
                           <span className="text-sm text-gray-600">Mengupdate preview...</span>
                         </div>
                       )}
 
                       <button 
-                        disabled={!processedImage || isUpdatingImage} 
+                        disabled={!transformData || isUpdatingImage} 
                         className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]" 
                         onClick={handleDownloadImage}>
-                        {isUpdatingImage ? 'Memproses...' : processedImage ? 'Unduh Gambar' : 'Memproses...'}
+                        {isUpdatingImage ? 'Memproses...' : transformData ? 'Unduh Gambar' : 'Atur foto dulu...'}
                       </button>
                     </div>
                   )}
