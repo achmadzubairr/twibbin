@@ -299,7 +299,7 @@ function CampaignPage() {
                             setTransformData(null);
                             setIsGestureActive(false);
                           }}
-                          className="text-sm text-gray-500 hover:text-gray-700"
+                          className="text-sm text-gray-500 hover:text-gray-700 relative z-50"
                         >
                           Ganti Foto
                         </button>

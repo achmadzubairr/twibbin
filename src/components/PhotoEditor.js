@@ -16,6 +16,7 @@ const PhotoEditor = ({
   const [lastTouch, setLastTouch] = useState(null);
   const [lastDistance, setLastDistance] = useState(null);
   const [isGestureActive, setIsGestureActive] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   
   const containerRef = useRef(null);
   const photoRef = useRef(null);
@@ -187,18 +188,47 @@ const PhotoEditor = ({
     if (onGestureStateChange) onGestureStateChange(false);
   };
 
-  // Wheel event for desktop zoom
-  const handleWheel = (e) => {
+  // Wheel event for desktop zoom - only when hovering over editor
+  // Mouse enter/leave handlers
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
+  // Wheel event for desktop zoom - only when hovering over editor
+  const handleWheel = useCallback((e) => {
+    if (!isHovered) {
+      return; // Allow normal page scroll when not hovering
+    }
+    
+    // Always prevent default when hovering over editor
     e.preventDefault();
+    e.stopPropagation();
+    
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     
     setPhotoTransform(prev => ({
       ...prev,
-      scale: Math.max(0.5, Math.min(2.5, prev.scale * delta)) // Consistent max zoom
+      scale: Math.max(0.5, Math.min(2.5, prev.scale * delta))
     }));
-  };
+  }, [isHovered]);
 
-  // Add global event listeners
+  // Add wheel event listener
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [isHovered, handleWheel]); // Re-attach when hover state changes
+
+  // Add global event listeners for gestures
   useEffect(() => {
     // Always listen for touch events, not just when dragging
     const handleGlobalTouchMove = (e) => {
@@ -248,7 +278,7 @@ const PhotoEditor = ({
       {/* Main Photo Editor - Template with Photo Overlay */}
       <div 
         ref={containerRef}
-        className="relative w-full bg-gray-50 overflow-hidden select-none"
+        className={`relative w-full bg-gray-50 overflow-hidden select-none transition-colors ${isHovered ? 'bg-gray-100' : ''}`}
         style={{ 
           aspectRatio: '1/1',
           touchAction: 'none' // Prevent default browser touch behaviors
@@ -257,7 +287,8 @@ const PhotoEditor = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
-        onWheel={handleWheel}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* User Photo - Background Layer */}
         <div
@@ -290,7 +321,7 @@ const PhotoEditor = ({
         {/* Touch instruction overlay */}
         <div className="absolute top-2 left-2 right-2 text-center z-10">
           <div className="bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-            👆 Drag foto • 👌 Pinch untuk zoom
+            👆 Drag foto • 👌 Pinch untuk zoom {isHovered && '• 🖱️ Scroll untuk zoom'}
           </div>
         </div>
 
