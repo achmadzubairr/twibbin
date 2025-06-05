@@ -47,19 +47,25 @@ const PhotoEditor = ({
   // Touch start handler
   const handleTouchStart = (e) => {
     e.preventDefault();
+    console.log('Touch start - touches:', e.touches.length);
     
     if (e.touches.length === 1) {
       // Single touch - start dragging
+      console.log('Starting drag');
       setIsDragging(true);
       setLastTouch({
         x: e.touches[0].clientX,
         y: e.touches[0].clientY
       });
+      setLastDistance(null); // Clear distance for single touch
     } else if (e.touches.length === 2) {
       // Two touches - start pinch zoom
+      console.log('Starting pinch zoom');
       setIsDragging(false);
+      setLastTouch(null); // Clear single touch
       const distance = getDistance(e.touches[0], e.touches[1]);
       setLastDistance(distance);
+      console.log('Initial distance:', distance);
     }
   };
 
@@ -67,8 +73,8 @@ const PhotoEditor = ({
   const handleTouchMove = useCallback((e) => {
     e.preventDefault();
 
-    if (e.touches.length === 1 && isDragging && lastTouch) {
-      // Single touch - drag photo
+    if (e.touches.length === 1 && isDragging && lastTouch && !lastDistance) {
+      // Single touch - drag photo (only if not in pinch mode)
       const deltaX = e.touches[0].clientX - lastTouch.x;
       const deltaY = e.touches[0].clientY - lastTouch.y;
       
@@ -82,26 +88,42 @@ const PhotoEditor = ({
         x: e.touches[0].clientX,
         y: e.touches[0].clientY
       });
-    } else if (e.touches.length === 2 && lastDistance) {
+    } else if (e.touches.length === 2 && lastDistance !== null) {
       // Two touches - pinch zoom
-      const distance = getDistance(e.touches[0], e.touches[1]);
-      const scaleChange = distance / lastDistance;
+      const newDistance = getDistance(e.touches[0], e.touches[1]);
+      const scaleChange = newDistance / lastDistance;
+      console.log('Pinch zoom - distance:', newDistance, 'scale change:', scaleChange);
       
-      setPhotoTransform(prev => ({
-        ...prev,
-        scale: Math.max(0.5, Math.min(3, prev.scale * scaleChange))
-      }));
+      // Apply scale change with bounds checking
+      setPhotoTransform(prev => {
+        const newScale = prev.scale * scaleChange;
+        const clampedScale = Math.max(0.5, Math.min(3, newScale));
+        console.log('New scale:', clampedScale);
+        return {
+          ...prev,
+          scale: clampedScale
+        };
+      });
       
-      setLastDistance(distance);
+      setLastDistance(newDistance);
     }
   }, [isDragging, lastTouch, lastDistance]);
 
   // Touch end handler
   const handleTouchEnd = (e) => {
     if (e.touches.length === 0) {
+      // All touches ended
       setIsDragging(false);
       setLastTouch(null);
       setLastDistance(null);
+    } else if (e.touches.length === 1 && lastDistance !== null) {
+      // Went from 2 touches to 1 touch - switch from pinch to drag
+      setLastDistance(null);
+      setIsDragging(true);
+      setLastTouch({
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY
+      });
     }
   };
 
@@ -151,20 +173,31 @@ const PhotoEditor = ({
 
   // Add global event listeners
   useEffect(() => {
-    if (isDragging) {
+    // Always listen for touch events, not just when dragging
+    const handleGlobalTouchMove = (e) => {
+      if (isDragging || lastDistance !== null) {
+        handleTouchMove(e);
+      }
+    };
+    
+    const handleGlobalTouchEnd = (e) => {
+      handleTouchEnd(e);
+    };
+
+    if (isDragging || lastDistance !== null) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd);
+      document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+      document.addEventListener('touchend', handleGlobalTouchEnd);
       
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
+        document.removeEventListener('touchmove', handleGlobalTouchMove);
+        document.removeEventListener('touchend', handleGlobalTouchEnd);
       };
     }
-  }, [isDragging, lastTouch, handleMouseMove, handleTouchMove]);
+  }, [isDragging, lastDistance, lastTouch, handleMouseMove, handleTouchMove]);
 
   // Reset photo position
   const resetPosition = () => {
@@ -188,9 +221,14 @@ const PhotoEditor = ({
       {/* Main Photo Editor - Template with Photo Overlay */}
       <div 
         ref={containerRef}
-        className="relative w-full bg-gray-50 overflow-hidden touch-none select-none"
-        style={{ aspectRatio: '1/1' }}
+        className="relative w-full bg-gray-50 overflow-hidden select-none"
+        style={{ 
+          aspectRatio: '1/1',
+          touchAction: 'none' // Prevent default browser touch behaviors
+        }}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
         onWheel={handleWheel}
       >
