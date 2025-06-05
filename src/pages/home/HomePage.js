@@ -23,7 +23,7 @@ function HomePage() {
   }, []);
 
   return (
-    <div className="overflow-x-hidden min-h-screen bg-[#f2fdf5]">
+    <div className="overflow-x-hidden overflow-y-auto min-h-screen bg-[#f2fdf5]">
       <nav className="header w-full sticky top-0 left-0 right-0 z-[99] px-4 py-4 flex items-center justify-between font-ysabeau font-medium text-xl lg:text-2xl text-gray-500 bg-[#f2fdf5]">
         <div className="flex items-center">
           <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span>STIBA Makassar
