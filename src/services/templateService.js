@@ -15,11 +15,15 @@ export const saveTemplate = async (file) => {
       throw new Error('Cloudinary configuration missing');
     }
 
+    console.log('Cloudinary config:', {
+      cloudName: cloudinaryConfig.cloudName,
+      uploadPreset: cloudinaryConfig.uploadPreset
+    });
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', cloudinaryConfig.uploadPreset);
     formData.append('public_id', TEMPLATE_PUBLIC_ID);
-    formData.append('overwrite', 'true');
 
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`,
@@ -30,7 +34,9 @@ export const saveTemplate = async (file) => {
     );
 
     if (!response.ok) {
-      throw new Error(`Upload failed: ${response.statusText}`);
+      const errorData = await response.text();
+      console.error('Upload error response:', errorData);
+      throw new Error(`Upload failed: ${response.statusText} - ${errorData}`);
     }
 
     const data = await response.json();

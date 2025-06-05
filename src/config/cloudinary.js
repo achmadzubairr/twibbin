@@ -7,4 +7,5 @@ export const cloudinaryConfig = {
 
 // Template storage constants
 export const TEMPLATE_PUBLIC_ID = 'twibbin_template';
+export const getTemplatePublicId = () => `${TEMPLATE_PUBLIC_ID}_${Date.now()}`;
 export const CLOUDINARY_BASE_URL = `https://res.cloudinary.com/${cloudinaryConfig.cloudName}/image/upload/`;
