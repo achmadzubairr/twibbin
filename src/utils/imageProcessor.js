@@ -34,8 +34,10 @@ export const createCustomPositionedImage = async (templateUrl, userPhoto, transf
           const transform = transformData?.transform || { x: 0, y: 0, scale: 1 };
           const previewSize = transformData?.previewSize || { width: outputWidth, height: outputHeight };
           
+          console.log('=== IMAGE PROCESSING DEBUG ===');
           console.log('Transform data:', transform);
           console.log('Preview size:', previewSize);
+          console.log('Output size:', outputWidth, 'x', outputHeight);
           console.log('User image loaded:', userImg.width, 'x', userImg.height);
           console.log('Template image loaded:', templateImg.width, 'x', templateImg.height);
           
@@ -44,28 +46,34 @@ export const createCustomPositionedImage = async (templateUrl, userPhoto, transf
           const scaleFactorY = outputHeight / previewSize.height;
           
           console.log('Scale factors:', scaleFactorX, scaleFactorY);
+          console.log('User scale (zoom):', transform.scale);
+          console.log('Translate values:', transform.x, transform.y);
           
           // Apply user photo as background with transforms
           ctx.save();
           
-          // First, translate to center of canvas
-          ctx.translate(outputWidth / 2, outputHeight / 2);
-          
-          // Apply scale
-          ctx.scale(transform.scale, transform.scale);
-          
-          // Apply translation (scale preview pixels to final canvas pixels)
+          // Scale preview coordinates to final canvas coordinates
           const finalTranslateX = transform.x * scaleFactorX;
           const finalTranslateY = transform.y * scaleFactorY;
-          console.log('Final translate:', finalTranslateX, finalTranslateY);
-          ctx.translate(finalTranslateX, finalTranslateY);
+          console.log('Scaled translate:', finalTranslateX, finalTranslateY);
           
-          // Translate back to draw from top-left corner
-          ctx.translate(-outputWidth / 2, -outputHeight / 2);
+          // Calculate transform matrix manually for precision
+          const centerX = outputWidth / 2;
+          const centerY = outputHeight / 2;
           
+          // Apply transforms: first translate to center, then scale, then translate by user offset
+          ctx.translate(centerX + finalTranslateX, centerY + finalTranslateY);
+          ctx.scale(transform.scale, transform.scale);
+          
+          // Calculate where to draw image so it's centered around the transform point
+          const drawX = -outputWidth / 2;
+          const drawY = -outputHeight / 2;
+          
+          console.log('Draw position:', drawX, drawY);
           console.log('Drawing user photo with transforms...');
-          // Draw user photo to fill the canvas
-          ctx.drawImage(userImg, 0, 0, outputWidth, outputHeight);
+          
+          // Draw user photo
+          ctx.drawImage(userImg, drawX, drawY, outputWidth, outputHeight);
           
           ctx.restore();
           

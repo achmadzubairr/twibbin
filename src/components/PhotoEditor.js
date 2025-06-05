@@ -42,6 +42,10 @@ const PhotoEditor = ({
       notifyTimeoutRef.current = setTimeout(() => {
         const containerSize = containerRef.current?.getBoundingClientRect();
         if (containerSize && !isGestureActive) {
+          console.log('PhotoEditor sending position data:', {
+            transform: photoTransform,
+            previewSize: { width: containerSize.width, height: containerSize.height }
+          });
           onPositionChange({
             transform: photoTransform,
             photoPreview,
@@ -119,7 +123,8 @@ const PhotoEditor = ({
       // Apply scale change with bounds checking
       setPhotoTransform(prev => {
         const newScale = prev.scale * scaleChange;
-        const clampedScale = Math.max(0.5, Math.min(3, newScale));
+        const clampedScale = Math.max(0.5, Math.min(2.5, newScale)); // Reduced max zoom
+        console.log('Pinch zoom - current scale:', prev.scale, '→ new scale:', clampedScale);
         return {
           ...prev,
           scale: clampedScale
@@ -194,7 +199,7 @@ const PhotoEditor = ({
     
     setPhotoTransform(prev => ({
       ...prev,
-      scale: Math.max(0.5, Math.min(3, prev.scale * delta))
+      scale: Math.max(0.5, Math.min(2.5, prev.scale * delta)) // Consistent max zoom
     }));
   };
 
