@@ -53,12 +53,28 @@ export const createCustomPositionedImage = async (templateUrl, userPhoto, transf
           ctx.translate(centerX + finalTranslateX, centerY + finalTranslateY);
           ctx.scale(transform.scale, transform.scale);
           
-          // Calculate where to draw image so it's centered around the transform point
-          const drawX = -outputWidth / 2;
-          const drawY = -outputHeight / 2;
+          // Calculate proper dimensions to maintain aspect ratio
+          const imgAspectRatio = userImg.width / userImg.height;
+          const targetAspectRatio = outputWidth / outputHeight;
           
-          // Draw user photo
-          ctx.drawImage(userImg, drawX, drawY, outputWidth, outputHeight);
+          let drawWidth, drawHeight;
+          
+          if (imgAspectRatio > targetAspectRatio) {
+            // Image is wider - fit by height
+            drawHeight = outputHeight;
+            drawWidth = drawHeight * imgAspectRatio;
+          } else {
+            // Image is taller - fit by width  
+            drawWidth = outputWidth;
+            drawHeight = drawWidth / imgAspectRatio;
+          }
+          
+          // Center the image
+          const drawX = -drawWidth / 2;
+          const drawY = -drawHeight / 2;
+          
+          // Draw user photo with preserved aspect ratio
+          ctx.drawImage(userImg, drawX, drawY, drawWidth, drawHeight);
           
           ctx.restore();
           

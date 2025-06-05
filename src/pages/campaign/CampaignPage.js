@@ -438,8 +438,8 @@ function CampaignPage() {
       </nav>
       
       <div className="flex flex-col items-center pt-6 pb-8 px-4">
-          <div className="bg-white w-[18rem] md:w-[28rem] lg:w-[35rem] drop-shadow-lg rounded-lg overflow-hidden">
-            <div className="image-container">
+          <div className="bg-white w-[18rem] md:w-[28rem] lg:w-[35rem] drop-shadow-lg rounded-lg">
+            <div className="image-container overflow-hidden">
               {campaign.campaign_type === 'photo' ? (
                 // Photo Campaign - Show Editor if editing, otherwise show final result
                 <div className="w-full relative">
