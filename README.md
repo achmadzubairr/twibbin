@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-app ini dibuat oleh @zavierferodova
+app ini dibuat oleh @zavierferodova dan dikembangkan oleh @achmadzubairr
 
 # Getting Started with Create React App
 
@@ -76,4 +75,3 @@ Add admin page & cloud storage
 
 =======
 # twibbinv2
->>>>>>> 52af8faf16562badca3800be5adeb5274102a376
