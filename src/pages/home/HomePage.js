@@ -14,13 +14,22 @@ function HomePage() {
   const imageSize = 1000;
 
   useEffect(() => {
-    // Check if a custom template exists in localStorage
-    const customTemplate = getTemplate();
-    if (customTemplate) {
-      setTemplateImage(customTemplate);
-    } else {
-      setTemplateImage(defaultTemplate);
-    }
+    // Load template on component mount
+    const loadTemplate = async () => {
+      try {
+        const customTemplate = await getTemplate();
+        if (customTemplate) {
+          setTemplateImage(customTemplate);
+        } else {
+          setTemplateImage(defaultTemplate);
+        }
+      } catch (error) {
+        console.error('Failed to load template:', error);
+        setTemplateImage(defaultTemplate);
+      }
+    };
+
+    loadTemplate();
 
     // Listen for template changes to update template in real-time
     const handleTemplateChange = (e) => {

@@ -14,10 +14,18 @@ function AdminPage() {
 
   useEffect(() => {
     // Load the current template on component mount
-    const template = getTemplate();
-    if (template) {
-      setCurrentTemplate(template);
-    }
+    const loadTemplate = async () => {
+      try {
+        const template = await getTemplate();
+        if (template) {
+          setCurrentTemplate(template);
+        }
+      } catch (error) {
+        console.error('Failed to load template:', error);
+      }
+    };
+
+    loadTemplate();
   }, []);
 
   const handleUploadTemplate = async () => {
@@ -33,41 +41,41 @@ function AdminPage() {
     }
 
     setIsUploading(true);
-    setMessage('');
+    setMessage('Mengupload template...');
 
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(templateFile);
+      const result = await saveTemplate(templateFile);
       
-      reader.onload = () => {
-        const result = reader.result;
-        if (saveTemplate(result)) {
-          setCurrentTemplate(result);
-          setMessage('Template berhasil diupload');
-        } else {
-          setMessage('Gagal menyimpan template');
-        }
-        setIsUploading(false);
-      };
-      
-      reader.onerror = () => {
-        setMessage('Gagal membaca file');
-        setIsUploading(false);
-      };
+      if (result.success) {
+        setCurrentTemplate(result.url);
+        setMessage('Template berhasil diupload');
+        setTemplateFile(null); // Clear the selected file
+      } else {
+        setMessage(`Gagal upload template: ${result.error}`);
+      }
     } catch (error) {
       console.error('Error uploading template:', error);
       setMessage('Terjadi kesalahan saat upload');
+    } finally {
       setIsUploading(false);
     }
   };
 
-  const handleResetTemplate = () => {
+  const handleResetTemplate = async () => {
     if (window.confirm('Apakah anda yakin ingin mengembalikan ke template default?')) {
-      if (resetTemplate()) {
-        setCurrentTemplate(null);
-        setMessage('Template berhasil direset ke default');
-      } else {
-        setMessage('Gagal mereset template');
+      try {
+        setMessage('Mereset template...');
+        const result = await resetTemplate();
+        
+        if (result.success) {
+          setCurrentTemplate(null);
+          setMessage('Template berhasil direset ke default');
+        } else {
+          setMessage(`Gagal mereset template: ${result.error}`);
+        }
+      } catch (error) {
+        console.error('Error resetting template:', error);
+        setMessage('Terjadi kesalahan saat mereset template');
       }
     }
   };
@@ -120,6 +128,7 @@ function AdminPage() {
                 accept="image/*"
                 className="w-full p-2 border border-gray-300 rounded-md"
                 onChange={(e) => handleInputFileChange(e, setTemplateFile)}
+                key={templateFile ? 'has-file' : 'no-file'}
               />
             </div>
             
