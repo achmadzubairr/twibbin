@@ -315,7 +315,7 @@ const PhotoEditor = ({
           <img
             src={photoPreview}
             alt="Your uploaded"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             style={{
               transform: `translate(${photoTransform.x}px, ${photoTransform.y}px) scale(${photoTransform.scale})`,
               transformOrigin: 'center',

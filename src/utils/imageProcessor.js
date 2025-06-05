@@ -53,28 +53,28 @@ export const createCustomPositionedImage = async (templateUrl, userPhoto, transf
           ctx.translate(centerX + finalTranslateX, centerY + finalTranslateY);
           ctx.scale(transform.scale, transform.scale);
           
-          // Calculate proper dimensions to maintain aspect ratio
-          const imgAspectRatio = userImg.width / userImg.height;
-          const targetAspectRatio = outputWidth / outputHeight;
+          // Calculate dimensions to match CSS object-contain behavior
+          const imageAspectRatio = userImg.width / userImg.height;
+          const canvasAspectRatio = outputWidth / outputHeight;
           
-          let drawWidth, drawHeight;
+          let renderWidth, renderHeight;
           
-          if (imgAspectRatio > targetAspectRatio) {
-            // Image is wider - fit by height
-            drawHeight = outputHeight;
-            drawWidth = drawHeight * imgAspectRatio;
+          if (imageAspectRatio > canvasAspectRatio) {
+            // Image is wider - fit to width (like object-contain)
+            renderWidth = outputWidth;
+            renderHeight = outputWidth / imageAspectRatio;
           } else {
-            // Image is taller - fit by width  
-            drawWidth = outputWidth;
-            drawHeight = drawWidth / imgAspectRatio;
+            // Image is taller - fit to height (like object-contain)
+            renderHeight = outputHeight;
+            renderWidth = outputHeight * imageAspectRatio;
           }
           
           // Center the image
-          const drawX = -drawWidth / 2;
-          const drawY = -drawHeight / 2;
+          const drawX = -renderWidth / 2;
+          const drawY = -renderHeight / 2;
           
-          // Draw user photo with preserved aspect ratio
-          ctx.drawImage(userImg, drawX, drawY, drawWidth, drawHeight);
+          // Draw user photo to match object-contain behavior
+          ctx.drawImage(userImg, drawX, drawY, renderWidth, renderHeight);
           
           ctx.restore();
           
