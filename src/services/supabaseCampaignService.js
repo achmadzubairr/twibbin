@@ -14,12 +14,12 @@ const getCampaignPublicId = (campaignId) => {
 
 /**
  * Create a new campaign
- * @param {Object} campaignData - { name, slug, templateFile }
+ * @param {Object} campaignData - { name, slug, templateFile, campaignType }
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
 export const createCampaign = async (campaignData) => {
   try {
-    const { name, slug, templateFile } = campaignData;
+    const { name, slug, templateFile, campaignType = 'text' } = campaignData;
     
     if (!name || !slug || !templateFile) {
       throw new Error('Campaign name, slug, and template are required');
@@ -48,6 +48,7 @@ export const createCampaign = async (campaignData) => {
           name,
           slug,
           template_url: '', // Will be updated after upload
+          campaign_type: campaignType,
           is_active: true
         }
       ])
@@ -179,7 +180,7 @@ export const getCampaignBySlug = async (slug) => {
 /**
  * Update campaign
  * @param {string} campaignId - Campaign ID
- * @param {Object} updateData - Data to update { name?, slug?, templateFile?, is_active? }
+ * @param {Object} updateData - Data to update { name?, slug?, templateFile?, campaignType?, is_active? }
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
 export const updateCampaign = async (campaignId, updateData) => {
@@ -221,14 +222,23 @@ export const updateCampaign = async (campaignId, updateData) => {
     // Prepare update object
     const updateObject = { ...updateData };
     delete updateObject.templateFile; // Remove file from update object
+    
+    // Map campaignType to campaign_type for database
+    if (updateData.campaignType !== undefined) {
+      updateObject.campaign_type = updateData.campaignType;
+      delete updateObject.campaignType;
+    }
 
     // If templateFile is provided, upload to Cloudinary first
     if (updateData.templateFile) {
       const formData = new FormData();
       formData.append('file', updateData.templateFile);
       formData.append('upload_preset', cloudinaryConfig.uploadPreset);
-      formData.append('public_id', getCampaignPublicId(campaignId));
-      formData.append('overwrite', 'true');
+      
+      // For updates, use a timestamped public_id to ensure uniqueness
+      const timestamp = Date.now();
+      const updatePublicId = `${getCampaignPublicId(campaignId)}_${timestamp}`;
+      formData.append('public_id', updatePublicId);
 
       const cloudinaryResponse = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`,

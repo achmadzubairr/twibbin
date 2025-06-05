@@ -28,7 +28,8 @@ function AdminPage() {
   const [campaignForm, setCampaignForm] = useState({
     name: '',
     slug: '',
-    templateFile: null
+    templateFile: null,
+    campaignType: 'text'
   });
   const [campaignMessage, setCampaignMessage] = useState('');
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
@@ -38,7 +39,8 @@ function AdminPage() {
   const [editForm, setEditForm] = useState({
     name: '',
     slug: '',
-    templateFile: null
+    templateFile: null,
+    campaignType: 'text'
   });
   const [isUpdating, setIsUpdating] = useState(false);
   
@@ -96,7 +98,7 @@ function AdminPage() {
       
       if (result.success) {
         setCampaigns([...campaigns, result.data]);
-        setCampaignForm({ name: '', slug: '', templateFile: null });
+        setCampaignForm({ name: '', slug: '', templateFile: null, campaignType: 'text' });
         setCampaignMessage('Campaign berhasil dibuat');
       } else {
         setCampaignMessage(`Gagal membuat campaign: ${result.error}`);
@@ -132,7 +134,8 @@ function AdminPage() {
     setEditForm({
       name: campaign.name,
       slug: campaign.slug,
-      templateFile: null
+      templateFile: null,
+      campaignType: campaign.campaign_type || 'text'
     });
     setActiveTab('create'); // Switch to create tab for editing
   };
@@ -164,7 +167,7 @@ function AdminPage() {
         
         // Reset edit state
         setEditingCampaign(null);
-        setEditForm({ name: '', slug: '', templateFile: null });
+        setEditForm({ name: '', slug: '', templateFile: null, campaignType: 'text' });
         setCampaignMessage('Campaign berhasil diupdate');
         setActiveTab('campaigns'); // Switch back to campaigns list
       } else {
@@ -180,7 +183,7 @@ function AdminPage() {
 
   const handleCancelEdit = () => {
     setEditingCampaign(null);
-    setEditForm({ name: '', slug: '', templateFile: null });
+    setEditForm({ name: '', slug: '', templateFile: null, campaignType: 'text' });
     setCampaignMessage('');
   };
 
@@ -318,6 +321,33 @@ function AdminPage() {
                 
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipe Campaign
+                  </label>
+                  <select
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    value={editingCampaign ? editForm.campaignType : campaignForm.campaignType}
+                    onChange={(e) => {
+                      const campaignType = e.target.value;
+                      if (editingCampaign) {
+                        setEditForm({...editForm, campaignType});
+                      } else {
+                        setCampaignForm({...campaignForm, campaignType});
+                      }
+                    }}
+                    disabled={editingCampaign} // Don't allow changing type when editing
+                  >
+                    <option value="text">Text Campaign (Nama + Teks Tambahan)</option>
+                    <option value="photo">Photo Campaign (Upload Foto User)</option>
+                  </select>
+                  {editingCampaign && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Tipe campaign tidak dapat diubah saat editing
+                    </p>
+                  )}
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nama Campaign
                   </label>
                   <input
@@ -371,6 +401,11 @@ function AdminPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Template Campaign {editingCampaign && '(kosongkan jika tidak ingin mengubah template)'}
                   </label>
+                  {(editingCampaign ? editForm.campaignType : campaignForm.campaignType) === 'photo' && (
+                    <p className="text-xs text-blue-600 mb-2">
+                      Untuk photo campaign: foto user akan muncul dalam lingkaran di tengah template ini
+                    </p>
+                  )}
                   <input
                     type="file"
                     accept="image/*"
@@ -440,70 +475,85 @@ function AdminPage() {
           {/* List Campaign Tab */}
           {activeTab === 'campaigns' && (
             <>
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-4">Daftar Campaign</h2>
-                
-                {campaigns.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">Belum ada campaign</p>
-                ) : (
-                  <div className="space-y-4">
-                    {campaigns.map((campaign) => (
-                      <div key={campaign.id} className="border rounded-md p-4 bg-gray-50">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-semibold">{campaign.name}</h3>
-                            <p className="text-sm text-gray-600">/{campaign.slug}</p>
-                            <p className="text-xs text-gray-500">
-                              Dibuat: {new Date(campaign.created_at).toLocaleDateString('id-ID')}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded text-xs ${campaign.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                              {campaign.is_active ? 'Aktif' : 'Nonaktif'}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="mb-3">
-                          <img
-                            src={campaign.template_url}
-                            alt={`Template ${campaign.name}`}
-                            className="max-h-32 mx-auto"
-                          />
-                        </div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Daftar Campaign</h2>
+                <div className="text-sm text-gray-500">
+                  Total: {campaigns.length} campaign
+                </div>
+              </div>
 
-                        <div className="grid grid-cols-2 gap-2 mb-2">
-                          <button
-                            className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                            onClick={() => window.open(`${window.location.origin}/${campaign.slug}`, '_blank')}
-                          >
-                            Lihat
-                          </button>
-                          <button
-                            className="px-3 py-1 text-sm bg-purple-500 text-white rounded hover:bg-purple-600"
-                            onClick={() => handleEditCampaign(campaign)}
-                          >
-                            Edit
-                          </button>
+              {campaigns.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Belum ada campaign</p>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {campaigns.map((campaign) => (
+                    <div key={campaign.id} className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="font-semibold">{campaign.name}</h3>
+                          <p className="text-sm text-gray-600">/{campaign.slug}</p>
+                          <p className="text-xs text-gray-500">
+                            Dibuat: {new Date(campaign.created_at).toLocaleDateString('id-ID')}
+                          </p>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            className={`px-3 py-1 text-sm rounded ${campaign.is_active ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'} text-white`}
-                            onClick={() => handleToggleCampaignStatus(campaign.id)}
-                          >
-                            {campaign.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                          </button>
-                          <button
-                            className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
-                            onClick={() => handleDeleteCampaign(campaign.id)}
-                          >
-                            Arsipkan
-                          </button>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs ${campaign.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {campaign.is_active ? 'Aktif' : 'Nonaktif'}
+                          </span>
+                          <span className={`px-2 py-1 rounded text-xs ${campaign.campaign_type === 'photo' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                            {campaign.campaign_type === 'photo' ? 'Foto' : 'Teks'}
+                          </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      
+                      <div className="mb-3">
+                        <img
+                          src={campaign.template_url}
+                          alt={`Template ${campaign.name}`}
+                          className="max-h-24 mx-auto rounded"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <button
+                          className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                          onClick={() => window.open(`${window.location.origin}/${campaign.slug}`, '_blank')}
+                        >
+                          Lihat
+                        </button>
+                        <button
+                          className="px-3 py-1 text-sm bg-purple-500 text-white rounded hover:bg-purple-600"
+                          onClick={() => handleEditCampaign(campaign)}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          className={`px-3 py-1 text-sm rounded ${campaign.is_active ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'} text-white`}
+                          onClick={() => handleToggleCampaignStatus(campaign.id)}
+                        >
+                          {campaign.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                        </button>
+                        <button
+                          className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+                          onClick={() => handleDeleteCampaign(campaign.id)}
+                        >
+                          Arsipkan
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                >
+                  Refresh Data
+                </button>
               </div>
             </>
           )}
@@ -545,39 +595,50 @@ function AdminPage() {
 
                   {/* Campaign Analytics */}
                   <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-4">Campaign Performance</h2>
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-xl font-semibold">Campaign Performance</h2>
+                      <div className="text-sm text-gray-500">
+                        {analytics.length} campaign
+                      </div>
+                    </div>
+                    
                     {analytics.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">Belum ada data analytics</p>
+                      <p className="text-gray-500 text-center py-8">Belum ada data analytics</p>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-3 max-h-80 overflow-y-auto">
                         {analytics.map((campaign) => (
                           <div key={campaign.id} className="border rounded-lg p-4 bg-gray-50">
-                            <div className="flex justify-between items-start mb-2">
+                            <div className="flex justify-between items-start mb-3">
                               <div>
                                 <h3 className="font-semibold">{campaign.name}</h3>
                                 <p className="text-sm text-gray-600">/{campaign.slug}</p>
                               </div>
-                              <span className={`px-2 py-1 rounded text-xs ${campaign.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                {campaign.is_active ? 'Aktif' : 'Nonaktif'}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 rounded text-xs ${campaign.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                  {campaign.is_active ? 'Aktif' : 'Nonaktif'}
+                                </span>
+                                <span className={`px-2 py-1 rounded text-xs ${campaign.campaign_type === 'photo' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                                  {campaign.campaign_type === 'photo' ? 'Foto' : 'Teks'}
+                                </span>
+                              </div>
                             </div>
                             
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                              <div>
-                                <div className="font-medium text-blue-600">{campaign.total_downloads || 0}</div>
-                                <div className="text-gray-500">Total Downloads</div>
+                              <div className="text-center p-2 bg-blue-50 rounded">
+                                <div className="font-bold text-blue-600 text-lg">{campaign.total_downloads || 0}</div>
+                                <div className="text-gray-600 text-xs">Total Downloads</div>
                               </div>
-                              <div>
-                                <div className="font-medium text-green-600">{campaign.unique_users || 0}</div>
-                                <div className="text-gray-500">Unique Users</div>
+                              <div className="text-center p-2 bg-green-50 rounded">
+                                <div className="font-bold text-green-600 text-lg">{campaign.unique_users || 0}</div>
+                                <div className="text-gray-600 text-xs">Unique Users</div>
                               </div>
-                              <div>
-                                <div className="font-medium text-purple-600">{campaign.downloads_today || 0}</div>
-                                <div className="text-gray-500">Hari Ini</div>
+                              <div className="text-center p-2 bg-purple-50 rounded">
+                                <div className="font-bold text-purple-600 text-lg">{campaign.downloads_today || 0}</div>
+                                <div className="text-gray-600 text-xs">Hari Ini</div>
                               </div>
-                              <div>
-                                <div className="font-medium text-orange-600">{campaign.downloads_this_week || 0}</div>
-                                <div className="text-gray-500">Minggu Ini</div>
+                              <div className="text-center p-2 bg-orange-50 rounded">
+                                <div className="font-bold text-orange-600 text-lg">{campaign.downloads_this_week || 0}</div>
+                                <div className="text-gray-600 text-xs">Minggu Ini</div>
                               </div>
                             </div>
                           </div>
@@ -589,13 +650,23 @@ function AdminPage() {
                   {/* Top Names */}
                   {downloadStats?.topNames && downloadStats.topNames.length > 0 && (
                     <div className="mb-6">
-                      <h2 className="text-xl font-semibold mb-4">Nama Paling Populer</h2>
+                      <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-semibold">Nama Paling Populer</h2>
+                        <div className="text-sm text-gray-500">
+                          Top {Math.min(downloadStats.topNames.length, 15)}
+                        </div>
+                      </div>
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="space-y-2">
-                          {downloadStats.topNames.slice(0, 10).map((item, index) => (
-                            <div key={index} className="flex justify-between items-center">
-                              <span className="text-sm">{item.item}</span>
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {downloadStats.topNames.slice(0, 15).map((item, index) => (
+                            <div key={index} className="flex justify-between items-center py-1">
+                              <div className="flex items-center">
+                                <span className="w-6 h-6 bg-blue-100 text-blue-800 rounded-full text-xs flex items-center justify-center mr-3">
+                                  {index + 1}
+                                </span>
+                                <span className="text-sm font-medium">{item.item}</span>
+                              </div>
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">
                                 {item.count}x
                               </span>
                             </div>
@@ -604,6 +675,16 @@ function AdminPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Refresh Button */}
+                  <div className="text-center">
+                    <button
+                      onClick={loadAnalytics}
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                    >
+                      Refresh Analytics
+                    </button>
+                  </div>
                 </>
               )}
             </>
