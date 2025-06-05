@@ -317,12 +317,11 @@ function AdminPage() {
 
   return (
     <div className="overflow-x-hidden overflow-y-auto min-h-screen bg-[#f2fdf5]">
-      <nav className="header w-full sticky top-0 left-0 right-0 z-[99] px-4 py-4 flex items-center justify-between font-ysabeau font-medium text-xl lg:text-2xl text-gray-500 bg-[#f2fdf5]">
-        <div className="flex items-center">
+      <nav className="header w-full sticky top-0 left-0 right-0 z-[99] px-4 py-4 flex items-center justify-between font-inter font-medium text-xl lg:text-2xl text-gray-500 bg-[#f2fdf5]">
+        <Link to="/" className="flex items-center hover:text-gray-700 cursor-pointer">
           <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span>STIBA Makassar
-        </div>
+        </Link>
         <div className="flex items-center gap-4">
-          <Link to="/" className="text-base text-gray-500 hover:text-gray-700">Beranda</Link>
           <button onClick={handleLogout} className="text-base text-red-500 hover:text-red-700">Logout</button>
         </div>
       </nav>
@@ -566,14 +565,14 @@ function AdminPage() {
                 {editingCampaign ? (
                   <div className="flex gap-2 mb-4">
                     <button
-                      className="flex-1 h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]"
+                      className="flex-1 h-12 font-inter bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]"
                       onClick={handleUpdateCampaign}
                       disabled={isUpdating || !editForm.name || !editForm.slug}
                     >
                       {isUpdating ? 'Mengupdate...' : 'Update Campaign'}
                     </button>
                     <button
-                      className="flex-1 h-12 font-roboto bg-gray-500 text-white rounded-xl hover:bg-gray-600"
+                      className="flex-1 h-12 font-inter bg-gray-500 text-white rounded-xl hover:bg-gray-600"
                       onClick={handleCancelEdit}
                       disabled={isUpdating}
                     >
@@ -582,7 +581,7 @@ function AdminPage() {
                   </div>
                 ) : (
                   <button
-                    className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2] mb-4"
+                    className="w-full h-12 font-inter bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2] mb-4"
                     onClick={handleCreateCampaign}
                     disabled={isCreatingCampaign || !campaignForm.name || !campaignForm.slug || !campaignForm.templateFile}
                   >
@@ -927,7 +926,7 @@ function AdminPage() {
                   </div>
 
                   <button
-                    className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2] mb-4"
+                    className="w-full h-12 font-inter bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2] mb-4"
                     onClick={handleChangePassword}
                     disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
                   >

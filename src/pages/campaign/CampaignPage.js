@@ -428,12 +428,11 @@ function CampaignPage() {
 
   return (
     <div className="min-h-screen bg-[#f2fdf5] flex flex-col">
-      <nav className="header w-full sticky top-0 left-0 right-0 z-[99] px-4 py-4 flex items-center justify-between font-ysabeau font-medium text-xl lg:text-2xl text-gray-500 bg-[#f2fdf5]">
-        <div className="flex items-center">
+      <nav className="header w-full sticky top-0 left-0 right-0 z-[99] px-4 py-4 flex items-center justify-between font-inter font-medium text-xl lg:text-2xl text-gray-500 bg-[#f2fdf5]">
+        <Link to="/" className="flex items-center hover:text-gray-700 cursor-pointer">
           <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span>STIBA Makassar
-        </div>
+        </Link>
         <div className="flex items-center gap-4">
-          <Link to="/" className="text-base text-gray-500 hover:text-gray-700">Beranda</Link>
           <Link to="/admin" className="text-base text-gray-500 hover:text-gray-700">Admin</Link>
         </div>
       </nav>
@@ -467,7 +466,7 @@ function CampaignPage() {
                 <div ref={(element) => refCallback(element, setPregeneratedImage)} className="w-full relative">
                   <img src={campaign.template_url} alt="Template" crossOrigin="anonymous"/>
                   <div className="absolute h-[3rem] md:h-[4.1rem] lg:h-[5.1rem] w-full bottom-0 left-0 right-0 flex justify-center">
-                    <div className="block font-monsterrat text-center leading-[0.45rem] md:leading-[0.75rem] lg:leading-[0.95rem] text-[#444444]">
+                    <div className="block font-montserrat text-center leading-[0.45rem] md:leading-[0.75rem] lg:leading-[0.95rem] text-[#444444]">
                       <span className="font-bold text-[0.48rem] md:text-[0.72rem] lg:text-[0.92rem]">{name}</span><br/>
                       <span className="font-medium text-[0.42rem] md:text-[0.65rem] lg:text-[0.82rem]">{additionalText}</span>
                     </div>
@@ -532,7 +531,7 @@ function CampaignPage() {
                       
                       <button 
                         disabled={!transformData || isGestureActive || isDownloading} 
-                        className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]" 
+                        className="w-full h-12 font-inter bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]" 
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -557,20 +556,20 @@ function CampaignPage() {
                 // Text Campaign Inputs (existing)
                 <>
                   <input 
-                    className="w-full block font-roboto p-2 px-4 border border-[#5e5e5e] rounded-xl mb-2" 
+                    className="w-full block font-inter p-2 px-4 border border-[#5e5e5e] rounded-xl mb-2" 
                     type="text" placeholder="Nama" 
                     value={name}
                     onChange={(e) => handleInputChange(e, setName, 25)}
                     />
                   <input 
-                    className="w-full block font-roboto p-2 px-4 border border-[#5e5e5e] rounded-xl mb-4" 
+                    className="w-full block font-inter p-2 px-4 border border-[#5e5e5e] rounded-xl mb-4" 
                     type="text" placeholder="Teks tambahan" 
                     value={additionalText} 
                     onChange={(e) => handleInputChange(e, setAdditionalText, 25)}
                     />
                   <button 
                     disabled={name === ''} 
-                    className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]" 
+                    className="w-full h-12 font-inter bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]" 
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();

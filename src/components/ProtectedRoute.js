@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { authenticateAdmin } from '../services/adminService';
 
 function ProtectedRoute({ children }) {
@@ -61,7 +62,7 @@ function ProtectedRoute({ children }) {
           )}
           
           <button
-            className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]"
+            className="w-full h-12 font-inter bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]"
             onClick={handleLogin}
             disabled={isLoading}
           >
@@ -69,12 +70,12 @@ function ProtectedRoute({ children }) {
           </button>
           
           <div className="mt-4 border-t pt-4">
-            <a
-              href="/"
+            <Link
+              to="/"
               className="block text-center text-blue-500 hover:underline"
             >
               Kembali ke Halaman Utama
-            </a>
+            </Link>
           </div>
         </div>
       </div>
