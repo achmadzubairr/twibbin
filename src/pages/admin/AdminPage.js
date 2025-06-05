@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { handleInputFileChange } from '../../utils/component-handler.ts';
 import { saveTemplate, getTemplate, resetTemplate } from '../../services/templateService';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import inLogo from '../../images/in-logo.png';
 import defaultTemplate from '../../images/template.jpg';
 
 function AdminPage() {
+  const navigate = useNavigate();
   const [templateFile, setTemplateFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState('');
@@ -71,6 +72,13 @@ function AdminPage() {
     }
   };
 
+  const handleLogout = () => {
+    if (window.confirm('Apakah anda yakin ingin logout?')) {
+      localStorage.removeItem('adminAuthenticated');
+      navigate('/');
+    }
+  };
+
   return (
     <div className="overflow-x-hidden">
       <nav>
@@ -78,7 +86,10 @@ function AdminPage() {
           <div className="flex items-center">
             <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span>STIBA Makassar
           </div>
-          <Link to="/" className="text-base text-gray-500 hover:text-gray-700">Beranda</Link>
+          <div className="flex items-center gap-4">
+            <Link to="/" className="text-base text-gray-500 hover:text-gray-700">Beranda</Link>
+            <button onClick={handleLogout} className="text-base text-red-500 hover:text-red-700">Logout</button>
+          </div>
         </div>
       </nav>
       

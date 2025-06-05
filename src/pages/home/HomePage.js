@@ -22,22 +22,20 @@ function HomePage() {
       setTemplateImage(defaultTemplate);
     }
 
-    // Listen for storage changes to update template in real-time
-    const handleStorageChange = (e) => {
-      if (e.key === 'customTemplate') {
-        if (e.newValue) {
-          setTemplateImage(e.newValue);
-        } else {
-          setTemplateImage(defaultTemplate);
-        }
+    // Listen for template changes to update template in real-time
+    const handleTemplateChange = (e) => {
+      if (e.detail) {
+        setTemplateImage(e.detail);
+      } else {
+        setTemplateImage(defaultTemplate);
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('templateChanged', handleTemplateChange);
 
     // Clean up event listener
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('templateChanged', handleTemplateChange);
     };
   }, []);
 

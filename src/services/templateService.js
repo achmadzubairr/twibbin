@@ -10,6 +10,8 @@
 export const saveTemplate = (dataUrl) => {
   try {
     localStorage.setItem('customTemplate', dataUrl);
+    // Dispatch custom event for real-time updates
+    window.dispatchEvent(new CustomEvent('templateChanged', { detail: dataUrl }));
     return true;
   } catch (error) {
     console.error('Failed to save template:', error);
@@ -32,6 +34,8 @@ export const getTemplate = () => {
 export const resetTemplate = () => {
   try {
     localStorage.removeItem('customTemplate');
+    // Dispatch custom event for real-time updates
+    window.dispatchEvent(new CustomEvent('templateChanged', { detail: null }));
     return true;
   } catch (error) {
     console.error('Failed to reset template:', error);
