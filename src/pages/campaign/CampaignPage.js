@@ -66,7 +66,7 @@ function CampaignPage() {
       document.title = `Twibbin | Buat ${campaign.name}`;
       
       // Set meta description
-      const description = `Buat ${campaign.name} yang disesuaikan dengan ${campaignType} anda`;
+      const description = `Buat kartu ucapan ${campaign.name} yang disesuaikan dengan ${campaignType} anda`;
       
       // Update or create meta tags
       const updateMetaTag = (property, content) => {
@@ -94,12 +94,6 @@ function CampaignPage() {
       updateMetaTag('twitter:title', `Twibbin | Buat ${campaign.name}`);
       updateMetaTag('twitter:description', description);
       updateMetaTag('twitter:image', campaign.template_url);
-      
-      // Set favicon to template image
-      const favicon = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
-      if (favicon) {
-        favicon.href = campaign.template_url;
-      }
     }
   }, [campaign]);
 
@@ -236,7 +230,7 @@ function CampaignPage() {
   const handleShareWhatsApp = () => {
     const currentUrl = window.location.href;
     const campaignType = campaign.campaign_type === 'photo' ? 'foto' : 'nama';
-    const text = `Buat ${campaignType} ${campaign.name} yang disesuaikan dengan ${campaignType} anda di Twibbin! ${currentUrl}`;
+    const text = `Buat kartu ucapan ${campaign.name} yang disesuaikan dengan ${campaignType} anda di Twibbin! ${currentUrl}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -250,7 +244,7 @@ function CampaignPage() {
   const handleShareTwitter = () => {
     const currentUrl = window.location.href;
     const campaignType = campaign.campaign_type === 'photo' ? 'foto' : 'nama';
-    const text = `Buat ${campaignType} ${campaign.name} yang disesuaikan dengan ${campaignType} anda di Twibbin!`;
+    const text = `Buat kartu ucapan ${campaign.name} yang disesuaikan dengan ${campaignType} anda di Twibbin!`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(currentUrl)}`;
     window.open(twitterUrl, '_blank');
   };
