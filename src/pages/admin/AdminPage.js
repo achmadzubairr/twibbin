@@ -517,7 +517,22 @@ function AdminPage() {
                       <div className="grid grid-cols-2 gap-2 mb-2">
                         <button
                           className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                          onClick={() => window.open(`${window.location.origin}/${campaign.slug}`, '_blank')}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            // Add debounce protection
+                            const now = Date.now();
+                            if (window.lastAdminClick && now - window.lastAdminClick < 1000) {
+                              return;
+                            }
+                            window.lastAdminClick = now;
+                            setTimeout(() => {
+                              window.open(`${window.location.origin}/${campaign.slug}`, '_blank');
+                            }, 100);
+                          }}
+                          onTouchStart={(e) => e.stopPropagation()}
+                          onTouchEnd={(e) => e.stopPropagation()}
+                          style={{ touchAction: 'manipulation' }}
                         >
                           Lihat
                         </button>

@@ -73,6 +73,7 @@ const PhotoEditor = ({
   // Touch start handler
   const handleTouchStart = (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling to parent elements
     setIsGestureActive(true);
     if (onGestureStateChange) onGestureStateChange(true);
     
@@ -96,6 +97,7 @@ const PhotoEditor = ({
   // Touch move handler
   const handleTouchMove = useCallback((e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling to parent elements
 
     if (e.touches.length === 1 && isDragging && lastTouch && !lastDistance) {
       // Single touch - drag photo (only if not in pinch mode)
@@ -133,6 +135,7 @@ const PhotoEditor = ({
 
   // Touch end handler
   const handleTouchEnd = (e) => {
+    e.stopPropagation(); // Prevent event bubbling to parent elements
     if (e.touches.length === 0) {
       // All touches ended
       setIsDragging(false);
@@ -154,6 +157,7 @@ const PhotoEditor = ({
   // Mouse events for desktop support
   const handleMouseDown = (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling to parent elements
     setIsGestureActive(true);
     if (onGestureStateChange) onGestureStateChange(true);
     setIsDragging(true);
@@ -289,6 +293,8 @@ const PhotoEditor = ({
         onMouseDown={handleMouseDown}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onContextMenu={(e) => e.preventDefault()} // Prevent context menu on long press
+        onDoubleClick={(e) => e.preventDefault()} // Prevent double-click issues
       >
         {/* User Photo - Background Layer */}
         <div
