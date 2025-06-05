@@ -59,6 +59,9 @@ function AdminPage() {
   const [profileMessage, setProfileMessage] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  // Sidebar state for mobile
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   useEffect(() => {
     // Load data on component mount
     const loadData = async () => {
@@ -324,43 +327,116 @@ function AdminPage() {
         </div>
       </nav>
       
-      <div className="flex flex-col items-center pt-6 pb-8 px-4">
-        <div className="bg-white w-[18rem] md:w-[28rem] lg:w-[35rem] drop-shadow-lg rounded-lg overflow-hidden p-6">
-          <h1 className="text-2xl font-bold mb-6 text-center">Admin Panel</h1>
-          
-          {/* Tab Navigation */}
-          <div className="flex mb-6 border-b overflow-x-auto">
-            <button
-              className={`px-4 py-2 mr-2 whitespace-nowrap ${activeTab === 'create' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('create')}
-            >
-              Buat Campaign
-            </button>
-            <button
-              className={`px-4 py-2 mr-2 whitespace-nowrap ${activeTab === 'campaigns' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('campaigns')}
-            >
-              List Campaign
-            </button>
-            <button
-              className={`px-4 py-2 mr-2 whitespace-nowrap ${activeTab === 'analytics' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('analytics')}
-            >
-              Analytics
-            </button>
-            <button
-              className={`px-4 py-2 mr-2 whitespace-nowrap ${activeTab === 'downloads' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('downloads')}
-            >
-              Downloads
-            </button>
-            <button
-              className={`px-4 py-2 whitespace-nowrap ${activeTab === 'profile' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('profile')}
-            >
-              Profile
-            </button>
+      <div className="flex flex-col lg:flex-row gap-6 pt-6 pb-8 px-4 max-w-7xl mx-auto">
+        {/* Mobile Menu Toggle */}
+        <div className="lg:hidden mb-4">
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="w-full bg-white border border-gray-200 rounded-md p-3 flex items-center justify-between"
+          >
+            <h1 className="text-lg font-semibold text-gray-900">Admin Panel</h1>
+            <span className="text-lg text-gray-600">{isSidebarOpen ? '✕' : '☰'}</span>
+          </button>
+        </div>
+
+        {/* Sidebar Navigation */}
+        <div className={`lg:w-56 flex-shrink-0 ${isSidebarOpen ? 'block' : 'hidden lg:block'}`}>
+          <div className="bg-white border border-gray-200 rounded-md p-3">
+            <h1 className="text-lg font-semibold mb-3 text-gray-900 hidden lg:block">Admin Panel</h1>
+            
+            {/* Vertical Tab Navigation */}
+            <nav className="space-y-1">
+              <button
+                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                  activeTab === 'create' 
+                    ? 'bg-gray-900 text-white' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => {
+                  setActiveTab('create');
+                  setIsSidebarOpen(false);
+                }}
+              >
+                <div className="flex items-center">
+                  <span className="text-sm mr-2">✏️</span>
+                  <span>Buat Campaign</span>
+                </div>
+              </button>
+              
+              <button
+                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                  activeTab === 'campaigns' 
+                    ? 'bg-gray-900 text-white' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => {
+                  setActiveTab('campaigns');
+                  setIsSidebarOpen(false);
+                }}
+              >
+                <div className="flex items-center">
+                  <span className="text-sm mr-2">📄</span>
+                  <span>Campaigns</span>
+                </div>
+              </button>
+              
+              <button
+                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                  activeTab === 'analytics' 
+                    ? 'bg-gray-900 text-white' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => {
+                  setActiveTab('analytics');
+                  setIsSidebarOpen(false);
+                }}
+              >
+                <div className="flex items-center">
+                  <span className="text-sm mr-2">📈</span>
+                  <span>Analytics</span>
+                </div>
+              </button>
+              
+              <button
+                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                  activeTab === 'downloads' 
+                    ? 'bg-gray-900 text-white' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => {
+                  setActiveTab('downloads');
+                  setIsSidebarOpen(false);
+                }}
+              >
+                <div className="flex items-center">
+                  <span className="text-sm mr-2">📊</span>
+                  <span>Downloads</span>
+                </div>
+              </button>
+              
+              <button
+                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                  activeTab === 'profile' 
+                    ? 'bg-gray-900 text-white' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => {
+                  setActiveTab('profile');
+                  setIsSidebarOpen(false);
+                }}
+              >
+                <div className="flex items-center">
+                  <span className="text-sm mr-2">⚙️</span>
+                  <span>Profile</span>
+                </div>
+              </button>
+            </nav>
           </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1">
+          <div className="bg-white border border-gray-200 rounded-md p-4">
           
           {/* Buat/Edit Campaign Tab */}
           {activeTab === 'create' && (
@@ -536,9 +612,9 @@ function AdminPage() {
               {campaigns.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">Belum ada campaign</p>
               ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-3 max-h-[48rem] overflow-y-auto">
                   {campaigns.map((campaign) => (
-                    <div key={campaign.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div key={campaign.id} className="border border-gray-200 rounded-md p-3 bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <h3 className="font-semibold">{campaign.name}</h3>
@@ -665,7 +741,7 @@ function AdminPage() {
                     ) : (
                       <div className="space-y-3 max-h-80 overflow-y-auto">
                         {analytics.map((campaign) => (
-                          <div key={campaign.id} className="border rounded-lg p-4 bg-gray-50">
+                          <div key={campaign.id} className="border border-gray-200 rounded-md p-3 bg-gray-50">
                             <div className="flex justify-between items-start mb-3">
                               <div>
                                 <h3 className="font-semibold">{campaign.name}</h3>
@@ -770,9 +846,9 @@ function AdminPage() {
               ) : downloads.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">Belum ada download</p>
               ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-3 max-h-[48rem] overflow-y-auto">
                   {downloads.map((download) => (
-                    <div key={download.id} className="border rounded-lg p-3 bg-gray-50">
+                    <div key={download.id} className="border border-gray-200 rounded-md p-3 bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <div className="font-medium">{download.user_name}</div>
@@ -808,7 +884,7 @@ function AdminPage() {
                 <h2 className="text-xl font-semibold mb-4">Admin Profile</h2>
                 
                 {/* Change Password Section */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <div className="bg-gray-50 border border-gray-200 rounded-md p-4 mb-4">
                   <h3 className="text-lg font-medium mb-4">Ubah Password</h3>
                   
                   <div className="mb-4">
@@ -866,7 +942,7 @@ function AdminPage() {
                 </div>
 
                 {/* Admin Info Section */}
-                <div className="bg-blue-50 rounded-lg p-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                   <h3 className="text-lg font-medium mb-2">Informasi Admin</h3>
                   <div className="text-sm text-gray-600">
                     <p><strong>Role:</strong> Administrator</p>
@@ -878,10 +954,7 @@ function AdminPage() {
             </>
           )}
           
-        </div>
-        
-        <div className="mt-8 text-base md:text-lg font-ysabeau text-[#8f8f8f]">
-          © STIBA Makassar
+          </div>
         </div>
       </div>
     </div>

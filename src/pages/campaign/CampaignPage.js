@@ -8,6 +8,7 @@ import { getCampaignBySlug } from '../../services/supabaseCampaignService';
 import { trackDownload } from '../../services/downloadService';
 import { validateImageFile, createCustomPositionedImage } from '../../utils/imageProcessor';
 import PhotoEditor from '../../components/PhotoEditor';
+import Footer from '../../components/Footer';
 
 function CampaignPage() {
   const { slug } = useParams();
@@ -426,7 +427,7 @@ function CampaignPage() {
   }
 
   return (
-    <div className="overflow-x-hidden min-h-screen bg-[#f2fdf5]">
+    <div className="min-h-screen bg-[#f2fdf5] flex flex-col">
       <nav className="header w-full sticky top-0 left-0 right-0 z-[99] px-4 py-4 flex items-center justify-between font-ysabeau font-medium text-xl lg:text-2xl text-gray-500 bg-[#f2fdf5]">
         <div className="flex items-center">
           <span className="mr-2 inline-block w-[1.6rem] lg:w-[2rem]"><img className="h-full w-full" src={inLogo} alt="In Logo"/></span>STIBA Makassar
@@ -437,7 +438,7 @@ function CampaignPage() {
         </div>
       </nav>
       
-      <div className="flex flex-col items-center pt-6 pb-8 px-4">
+      <div className="flex-1 flex flex-col items-center pt-6 pb-8 px-4">
           <div className="bg-white w-[18rem] md:w-[28rem] lg:w-[35rem] drop-shadow-lg rounded-lg">
             <div className="image-container overflow-hidden">
               {campaign.campaign_type === 'photo' ? (
@@ -691,10 +692,9 @@ function CampaignPage() {
             </div>
           </div>
 
-        <div className="mt-8 text-base md:text-lg font-ysabeau text-[#8f8f8f]">
-          © STIBA Makassar
-        </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }
