@@ -36,10 +36,14 @@ export const createCustomPositionedImage = async (templateUrl, userPhoto, transf
           
           console.log('Transform data:', transform);
           console.log('Preview size:', previewSize);
+          console.log('User image loaded:', userImg.width, 'x', userImg.height);
+          console.log('Template image loaded:', templateImg.width, 'x', templateImg.height);
           
           // Calculate scale factor from preview to final canvas
           const scaleFactorX = outputWidth / previewSize.width;
           const scaleFactorY = outputHeight / previewSize.height;
+          
+          console.log('Scale factors:', scaleFactorX, scaleFactorY);
           
           // Apply user photo as background with transforms
           ctx.save();
@@ -51,16 +55,21 @@ export const createCustomPositionedImage = async (templateUrl, userPhoto, transf
           ctx.scale(transform.scale, transform.scale);
           
           // Apply translation (scale preview pixels to final canvas pixels)
-          ctx.translate(transform.x * scaleFactorX, transform.y * scaleFactorY);
+          const finalTranslateX = transform.x * scaleFactorX;
+          const finalTranslateY = transform.y * scaleFactorY;
+          console.log('Final translate:', finalTranslateX, finalTranslateY);
+          ctx.translate(finalTranslateX, finalTranslateY);
           
           // Translate back to draw from top-left corner
           ctx.translate(-outputWidth / 2, -outputHeight / 2);
           
+          console.log('Drawing user photo with transforms...');
           // Draw user photo to fill the canvas
           ctx.drawImage(userImg, 0, 0, outputWidth, outputHeight);
           
           ctx.restore();
           
+          console.log('Drawing template...');
           // Draw template over the user photo
           ctx.drawImage(templateImg, 0, 0, outputWidth, outputHeight);
           
@@ -92,10 +101,13 @@ export const createCustomPositionedImage = async (templateUrl, userPhoto, transf
     
     // Use photo preview URL if available, otherwise create from file
     if (transformData?.photoPreview) {
+      console.log('Using photo preview URL:', transformData.photoPreview.substring(0, 50) + '...');
       userImg.src = transformData.photoPreview;
     } else if (userPhoto) {
+      console.log('Reading photo file:', userPhoto.name, userPhoto.size);
       const reader = new FileReader();
       reader.onload = (e) => {
+        console.log('Photo file read successfully');
         userImg.src = e.target.result;
       };
       reader.onerror = () => reject(new Error('Failed to read user photo'));

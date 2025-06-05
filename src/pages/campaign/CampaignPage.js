@@ -25,8 +25,6 @@ function CampaignPage() {
   const [processingPhoto, setProcessingPhoto] = useState(false);
   const [transformData, setTransformData] = useState(null);
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
-  const [isUpdatingImage, setIsUpdatingImage] = useState(false);
-  const updateTimeoutRef = useRef(null);
   
   const imageSize = 1000;
 
@@ -54,12 +52,6 @@ function CampaignPage() {
       loadCampaign();
     }
 
-    // Cleanup timeout on unmount
-    return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-    };
   }, [slug]);
 
   const generateRandomId = () => {
@@ -97,36 +89,10 @@ function CampaignPage() {
     }
   };
 
-  const updateProcessedImage = async (photo = userPhoto, newTransformData = transformData) => {
-    if (!photo || !campaign || !newTransformData) return;
-
-    try {
-      setIsUpdatingImage(true);
-      const finalImage = await createCustomPositionedImage(
-        campaign.template_url,
-        photo,
-        newTransformData,
-        1000,
-        1000
-      );
-      setProcessedImage(finalImage);
-    } catch (error) {
-      console.error('Error updating processed image:', error);
-      setUploadError('Gagal memproses foto. Coba lagi.');
-    } finally {
-      setIsUpdatingImage(false);
-    }
-  };
 
   const handlePositionChange = async (newTransformData) => {
     setTransformData(newTransformData);
-    // Auto-update processed image after short delay to avoid performance issues during gestures
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current);
-    }
-    updateTimeoutRef.current = setTimeout(() => {
-      updateProcessedImage(userPhoto, newTransformData);
-    }, 500);
+    // Don't auto-update processed image - generate on-demand when downloading
   };
 
   const cleanNameForFilename = (name) => {
@@ -140,6 +106,8 @@ function CampaignPage() {
     // Photo campaign download
     if (campaign?.campaign_type === 'photo' && transformData) {
       try {
+        console.log('Starting download with transform data:', transformData);
+        
         // Track download in database first
         const trackResult = await trackDownload({
           campaignId: campaign.id,
@@ -152,6 +120,7 @@ function CampaignPage() {
           console.warn('Failed to track download:', trackResult.error);
         }
 
+        console.log('Generating final image...');
         // Generate final image with current transform data
         const finalImage = await createCustomPositionedImage(
           campaign.template_url,
@@ -161,6 +130,7 @@ function CampaignPage() {
           1000
         );
 
+        console.log('Final image generated, starting download...');
         // Download the final image
         const a = document.createElement('a');
         a.href = finalImage;
@@ -329,18 +299,11 @@ function CampaignPage() {
                         </button>
                       </div>
                       
-                      {isUpdatingImage && (
-                        <div className="flex items-center justify-center py-2 mb-4">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#14eb99] mr-2"></div>
-                          <span className="text-sm text-gray-600">Mengupdate preview...</span>
-                        </div>
-                      )}
-
                       <button 
-                        disabled={!transformData || isUpdatingImage} 
+                        disabled={!transformData} 
                         className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]" 
                         onClick={handleDownloadImage}>
-                        {isUpdatingImage ? 'Memproses...' : transformData ? 'Unduh Gambar' : 'Atur foto dulu...'}
+                        {transformData ? 'Unduh Gambar' : 'Atur foto dulu...'}
                       </button>
                     </div>
                   )}
