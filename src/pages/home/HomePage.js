@@ -52,11 +52,19 @@ function HomePage() {
     if (pregeneratedImage != null) {
       const scaleSize = imageSize / pregeneratedImage.offsetWidth;
 
-      html2canvas(pregeneratedImage, { scale: scaleSize }).then(canvas => {
+      html2canvas(pregeneratedImage, { 
+        scale: scaleSize,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null
+      }).then(canvas => {
         const a = document.createElement('a');
-        a.href = canvas.toDataURL("image/jpeg", 2);
+        a.href = canvas.toDataURL("image/jpeg", 1.0);
         a.download = 'twibbin.jpg';
         a.click();
+      }).catch(error => {
+        console.error('Error generating image:', error);
+        alert('Gagal mengunduh gambar. Coba lagi.');
       });
     }
   };
@@ -74,7 +82,7 @@ function HomePage() {
           <div className="bg-white w-[18rem] md:w-[28rem] lg:w-[35rem] drop-shadow-lg rounded-lg overflow-hidden">
             <div className="image-container">
               <div ref={(element) => refCallback(element, setPregeneratedImage)} className="w-full relative">
-                <img src={templateImage} alt="Template"/>
+                <img src={templateImage} alt="Template" crossOrigin="anonymous"/>
                 <div className="absolute h-[3rem] md:h-[4.1rem] lg:h-[5.1rem] w-full bottom-0 left-0 right-0 flex justify-center">
                   <div className="block font-monsterrat text-center leading-[0.45rem] md:leading-[0.75rem] lg:leading-[0.95rem] text-[#444444]">
                     <span className="font-bold text-[0.48rem] md:text-[0.72rem] lg:text-[0.92rem]">{name}</span><br/>
