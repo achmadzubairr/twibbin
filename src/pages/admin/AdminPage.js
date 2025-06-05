@@ -403,7 +403,7 @@ function AdminPage() {
                   </label>
                   {(editingCampaign ? editForm.campaignType : campaignForm.campaignType) === 'photo' && (
                     <p className="text-xs text-blue-600 mb-2">
-                      Untuk photo campaign: foto user akan muncul dalam lingkaran di tengah template ini
+                      Untuk photo campaign: foto user akan muncul dalam template ini
                     </p>
                   )}
                   <input
@@ -547,14 +547,6 @@ function AdminPage() {
                 </div>
               )}
               
-              <div className="mt-4 text-center">
-                <button
-                  onClick={() => window.location.reload()}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                >
-                  Refresh Data
-                </button>
-              </div>
             </>
           )}
 
@@ -740,25 +732,9 @@ function AdminPage() {
                 </div>
               )}
               
-              <div className="mt-4 text-center">
-                <button
-                  onClick={loadAnalytics}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                >
-                  Refresh Data
-                </button>
-              </div>
             </>
           )}
           
-          <div className="mt-4 border-t pt-4">
-            <Link
-              to="/"
-              className="block text-center text-blue-500 hover:underline"
-            >
-              Kembali ke Halaman Utama
-            </Link>
-          </div>
         </div>
         
         <div className="mt-8 text-base md:text-lg font-ysabeau text-[#8f8f8f]">

@@ -27,6 +27,7 @@ function CampaignPage() {
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
   const [isGestureActive, setIsGestureActive] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   
   const imageSize = 1000;
 
@@ -55,6 +56,52 @@ function CampaignPage() {
     }
 
   }, [slug]);
+
+  // Set meta tags for social media preview
+  useEffect(() => {
+    if (campaign) {
+      const campaignType = campaign.campaign_type === 'photo' ? 'foto' : 'nama';
+      
+      // Set title
+      document.title = `Twibbin | Buat ${campaign.name}`;
+      
+      // Set meta description
+      const description = `Buat ${campaign.name} yang disesuaikan dengan ${campaignType} anda`;
+      
+      // Update or create meta tags
+      const updateMetaTag = (property, content) => {
+        let meta = document.querySelector(`meta[property="${property}"]`) || 
+                  document.querySelector(`meta[name="${property}"]`);
+        if (!meta) {
+          meta = document.createElement('meta');
+          if (property.startsWith('og:') || property.startsWith('twitter:')) {
+            meta.setAttribute('property', property);
+          } else {
+            meta.setAttribute('name', property);
+          }
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      };
+
+      updateMetaTag('description', description);
+      updateMetaTag('og:title', `Twibbin | Buat ${campaign.name}`);
+      updateMetaTag('og:description', description);
+      updateMetaTag('og:image', campaign.template_url);
+      updateMetaTag('og:url', window.location.href);
+      updateMetaTag('og:type', 'website');
+      updateMetaTag('twitter:card', 'summary_large_image');
+      updateMetaTag('twitter:title', `Twibbin | Buat ${campaign.name}`);
+      updateMetaTag('twitter:description', description);
+      updateMetaTag('twitter:image', campaign.template_url);
+      
+      // Set favicon to template image
+      const favicon = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
+      if (favicon) {
+        favicon.href = campaign.template_url;
+      }
+    }
+  }, [campaign]);
 
   const generateRandomId = () => {
     return Math.random().toString(36).substring(2, 7);
@@ -183,6 +230,53 @@ function CampaignPage() {
         console.error('Error generating/downloading image:', error);
         alert('Gagal mengunduh gambar. Coba lagi.');
       }
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const currentUrl = window.location.href;
+    const campaignType = campaign.campaign_type === 'photo' ? 'foto' : 'nama';
+    const text = `Buat ${campaignType} ${campaign.name} yang disesuaikan dengan ${campaignType} anda di Twibbin! ${currentUrl}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleShareFacebook = () => {
+    const currentUrl = window.location.href;
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`;
+    window.open(facebookUrl, '_blank');
+  };
+
+  const handleShareTwitter = () => {
+    const currentUrl = window.location.href;
+    const campaignType = campaign.campaign_type === 'photo' ? 'foto' : 'nama';
+    const text = `Buat ${campaignType} ${campaign.name} yang disesuaikan dengan ${campaignType} anda di Twibbin!`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(currentUrl)}`;
+    window.open(twitterUrl, '_blank');
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      const currentUrl = window.location.href;
+      await navigator.clipboard.writeText(currentUrl);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      // Fallback untuk browser yang tidak support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = window.location.href;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      } catch (fallbackError) {
+        console.error('Fallback copy failed:', fallbackError);
+        alert('Gagal menyalin link. Silakan salin manual dari address bar.');
+      }
+      document.body.removeChild(textArea);
     }
   };
 
@@ -355,6 +449,50 @@ function CampaignPage() {
               )}
             </div>
           </div>
+
+          {/* Share Buttons */}
+          <div className="mt-6 bg-white w-[18rem] md:w-[28rem] lg:w-[35rem] drop-shadow-lg rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-3 text-center text-gray-700">Bagikan Campaign</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <button
+                onClick={handleShareWhatsApp}
+                className="flex flex-col items-center p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors duration-200 border border-green-200"
+              >
+                <span className="text-2xl mb-1">💬</span>
+                <span className="text-sm font-medium text-green-700">WhatsApp</span>
+              </button>
+              
+              <button
+                onClick={handleShareFacebook}
+                className="flex flex-col items-center p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200 border border-blue-200"
+              >
+                <span className="text-2xl mb-1">📘</span>
+                <span className="text-sm font-medium text-blue-700">Facebook</span>
+              </button>
+              
+              <button
+                onClick={handleShareTwitter}
+                className="flex flex-col items-center p-3 bg-sky-50 hover:bg-sky-100 rounded-lg transition-colors duration-200 border border-sky-200"
+              >
+                <span className="text-2xl mb-1">🐦</span>
+                <span className="text-sm font-medium text-sky-700">Twitter</span>
+              </button>
+              
+              <button
+                onClick={handleCopyLink}
+                className="flex flex-col items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors duration-200 border border-gray-200 relative"
+              >
+                <span className="text-2xl mb-1">🔗</span>
+                <span className="text-sm font-medium text-gray-700">Copy Link</span>
+                {copySuccess && (
+                  <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                    Link disalin!
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
           <div className="mt-8 text-base md:text-lg font-ysabeau text-[#8f8f8f]">
             © STIBA Makassar
           </div>
