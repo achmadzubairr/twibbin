@@ -1,73 +1,25 @@
 import { useState, useEffect } from 'react';
-import { handleInputChange, refCallback } from '../../utils/component-handler.ts';
-import html2canvas from 'html2canvas';
 import inLogo from '../../images/in-logo.png';
-import defaultTemplate from '../../images/template.jpg';
 import { Link } from 'react-router-dom';
-import { getTemplate } from '../../services/templateService';
+import { getCampaigns } from '../../services/campaignService';
 
 function HomePage() {  
-  const [name, setName] = useState('');
-  const [additionalText, setAdditionalText] = useState('');
-  const [pregeneratedImage, setPregeneratedImage] = useState(null);
-  const [templateImage, setTemplateImage] = useState(defaultTemplate);
-  const imageSize = 1000;
+  const [campaigns, setCampaigns] = useState([]);
 
   useEffect(() => {
-    // Load template on component mount
-    const loadTemplate = async () => {
+    // Load active campaigns
+    const loadCampaigns = async () => {
       try {
-        const customTemplate = await getTemplate();
-        if (customTemplate) {
-          setTemplateImage(customTemplate);
-        } else {
-          setTemplateImage(defaultTemplate);
-        }
+        const campaignsData = await getCampaigns();
+        const activeCampaigns = campaignsData.filter(c => c.isActive);
+        setCampaigns(activeCampaigns);
       } catch (error) {
-        console.error('Failed to load template:', error);
-        setTemplateImage(defaultTemplate);
+        console.error('Failed to load campaigns:', error);
       }
     };
 
-    loadTemplate();
-
-    // Listen for template changes to update template in real-time
-    const handleTemplateChange = (e) => {
-      if (e.detail) {
-        setTemplateImage(e.detail);
-      } else {
-        setTemplateImage(defaultTemplate);
-      }
-    };
-
-    window.addEventListener('templateChanged', handleTemplateChange);
-
-    // Clean up event listener
-    return () => {
-      window.removeEventListener('templateChanged', handleTemplateChange);
-    };
+    loadCampaigns();
   }, []);
-
-  const handleDownloadImage = () => {
-    if (pregeneratedImage != null) {
-      const scaleSize = imageSize / pregeneratedImage.offsetWidth;
-
-      html2canvas(pregeneratedImage, { 
-        scale: scaleSize,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null
-      }).then(canvas => {
-        const a = document.createElement('a');
-        a.href = canvas.toDataURL("image/jpeg", 1.0);
-        a.download = 'twibbin.jpg';
-        a.click();
-      }).catch(error => {
-        console.error('Error generating image:', error);
-        alert('Gagal mengunduh gambar. Coba lagi.');
-      });
-    }
-  };
 
   return (
     <div className="overflow-x-hidden">
@@ -79,39 +31,37 @@ function HomePage() {
           <Link to="/admin" className="text-base text-gray-500 hover:text-gray-700">Admin</Link>
         </div>
         <div className="flex flex-col items-center pt-10 w-full min-h-screen pb-12 bg-[#f2fdf5]">
-          <div className="bg-white w-[18rem] md:w-[28rem] lg:w-[35rem] drop-shadow-lg rounded-lg overflow-hidden">
-            <div className="image-container">
-              <div ref={(element) => refCallback(element, setPregeneratedImage)} className="w-full relative">
-                <img src={templateImage} alt="Template" crossOrigin="anonymous"/>
-                <div className="absolute h-[3rem] md:h-[4.1rem] lg:h-[5.1rem] w-full bottom-0 left-0 right-0 flex justify-center">
-                  <div className="block font-monsterrat text-center leading-[0.45rem] md:leading-[0.75rem] lg:leading-[0.95rem] text-[#444444]">
-                    <span className="font-bold text-[0.48rem] md:text-[0.72rem] lg:text-[0.92rem]">{name}</span><br/>
-                    <span className="font-medium text-[0.42rem] md:text-[0.65rem] lg:text-[0.82rem]">{additionalText}</span>
-                  </div>
-                </div>
+          {/* Campaign Section */}
+          {campaigns.length > 0 ? (
+            <div className="w-[18rem] md:w-[28rem] lg:w-[35rem]">
+              <h2 className="text-2xl lg:text-3xl font-bold text-center mb-8 text-gray-800">Pilih Template</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {campaigns.map((campaign) => (
+                  <Link
+                    key={campaign.id}
+                    to={`/${campaign.slug}`}
+                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                  >
+                    <img
+                      src={campaign.templateUrl}
+                      alt={campaign.name}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="p-4">
+                      <h3 className="font-semibold text-gray-800 text-base">{campaign.name}</h3>
+                      <p className="text-sm text-gray-500 mt-1">Klik untuk menggunakan template ini</p>
+                    </div>
+                  </Link>
+                ))}
               </div>
             </div>
-            <div className="mt-4 px-4 pb-4">
-              <input 
-                className="w-full block font-roboto p-2 px-4 border border-[#5e5e5e] rounded-xl mb-2" 
-                type="text" placeholder="Nama" 
-                value={name}
-                onChange={(e) => handleInputChange(e, setName, 25)}
-                />
-              <input 
-                className="w-full block font-roboto p-2 px-4 border border-[#5e5e5e] rounded-xl mb-4" 
-                type="text" placeholder="Teks tambahan" 
-                value={additionalText} 
-                onChange={(e) => handleInputChange(e, setAdditionalText, 25)}
-                />
-              <button 
-                disabled={name === ''} 
-                className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2]" 
-                onClick={handleDownloadImage}>
-                Unduh
-              </button>
+          ) : (
+            <div className="text-center">
+              <h2 className="text-2xl lg:text-3xl font-bold mb-4 text-gray-800">Belum Ada Template</h2>
+              <p className="text-gray-600">Template sedang dalam persiapan</p>
             </div>
-          </div>
+          )}
+
           <div className="mt-8 text-base md:text-lg font-ysabeau text-[#8f8f8f]">
             © STIBA Makassar
           </div>
