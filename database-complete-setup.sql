@@ -39,6 +39,15 @@ CREATE TABLE IF NOT EXISTS downloads (
     random_id VARCHAR(50)
 );
 
+-- Create admin_settings table for admin configuration
+CREATE TABLE IF NOT EXISTS admin_settings (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    setting_key VARCHAR(100) UNIQUE NOT NULL,
+    setting_value TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ========================================
 -- 3. CREATE INDEXES FOR PERFORMANCE
 -- ========================================
@@ -50,6 +59,7 @@ CREATE INDEX IF NOT EXISTS idx_campaigns_type ON campaigns(campaign_type);
 CREATE INDEX IF NOT EXISTS idx_downloads_campaign_id ON downloads(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_downloads_time ON downloads(download_time);
 CREATE INDEX IF NOT EXISTS idx_downloads_user_name ON downloads(user_name);
+CREATE INDEX IF NOT EXISTS idx_admin_settings_key ON admin_settings(setting_key);
 
 -- ========================================
 -- 4. CREATE TRIGGERS AND FUNCTIONS
@@ -68,6 +78,11 @@ $$ language 'plpgsql';
 DROP TRIGGER IF EXISTS update_campaigns_updated_at ON campaigns;
 CREATE TRIGGER update_campaigns_updated_at BEFORE UPDATE
     ON campaigns FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Apply trigger to admin_settings table
+DROP TRIGGER IF EXISTS update_admin_settings_updated_at ON admin_settings;
+CREATE TRIGGER update_admin_settings_updated_at BEFORE UPDATE
+    ON admin_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ========================================
 -- 5. SOFT DELETE FUNCTIONS
@@ -169,6 +184,7 @@ ORDER BY c.deleted_at DESC;
 -- Enable RLS
 ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE downloads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_settings ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Allow all operations on campaigns" ON campaigns;
@@ -194,6 +210,10 @@ CREATE POLICY "Prevent hard delete campaigns" ON campaigns
 
 -- Create policies for downloads (allow all operations for tracking)
 CREATE POLICY "Allow all operations on downloads" ON downloads 
+    FOR ALL USING (true);
+
+-- Create policies for admin_settings (allow all operations for admin)
+CREATE POLICY "Allow all operations on admin_settings" ON admin_settings 
     FOR ALL USING (true);
 
 -- ========================================
@@ -252,6 +272,7 @@ $$ LANGUAGE plpgsql;
 -- ========================================
 COMMENT ON TABLE campaigns IS 'Campaign templates for greeting cards';
 COMMENT ON TABLE downloads IS 'Download tracking and analytics';
+COMMENT ON TABLE admin_settings IS 'Admin configuration settings including passwords and app settings';
 
 COMMENT ON COLUMN campaigns.id IS 'Unique campaign identifier';
 COMMENT ON COLUMN campaigns.name IS 'Display name of the campaign';
@@ -272,6 +293,12 @@ COMMENT ON COLUMN downloads.ip_address IS 'User IP address for analytics';
 COMMENT ON COLUMN downloads.user_agent IS 'Browser user agent string';
 COMMENT ON COLUMN downloads.filename IS 'Generated filename for the download';
 COMMENT ON COLUMN downloads.random_id IS 'Random identifier for the download';
+
+COMMENT ON COLUMN admin_settings.id IS 'Unique setting identifier';
+COMMENT ON COLUMN admin_settings.setting_key IS 'Setting key identifier (e.g., admin_password)';
+COMMENT ON COLUMN admin_settings.setting_value IS 'Setting value (hashed for passwords)';
+COMMENT ON COLUMN admin_settings.created_at IS 'Setting creation timestamp';
+COMMENT ON COLUMN admin_settings.updated_at IS 'Setting last update timestamp';
 
 COMMENT ON FUNCTION soft_delete_campaign(UUID) IS 'Soft delete a campaign by setting deleted_at timestamp';
 COMMENT ON FUNCTION restore_campaign(UUID) IS 'Restore a soft deleted campaign by clearing deleted_at';
@@ -308,6 +335,10 @@ SELECT
     substr(md5(random()::text), 1, 5)
 FROM campaigns c
 WHERE c.slug IN ('sample-text', 'sample-photo');
+
+-- Insert default admin password (change this immediately after setup!)
+INSERT INTO admin_settings (setting_key, setting_value) VALUES
+('admin_password', '$2b$10$rLAzQqsZlKJKo9YAX.SFW.K3N8n7IzCt9yt9P0YjKnKc9d4Lx8e7m'); -- 'admin123'
 */
 
 -- ========================================
@@ -319,7 +350,7 @@ WHERE c.slug IN ('sample-text', 'sample-photo');
 SELECT table_name, table_type 
 FROM information_schema.tables 
 WHERE table_schema = 'public' 
-AND table_name IN ('campaigns', 'downloads');
+AND table_name IN ('campaigns', 'downloads', 'admin_settings');
 
 -- Check views exist
 SELECT table_name, table_type 
@@ -344,7 +375,7 @@ AND routine_name IN (
 SELECT indexname, tablename 
 FROM pg_indexes 
 WHERE schemaname = 'public' 
-AND tablename IN ('campaigns', 'downloads')
+AND tablename IN ('campaigns', 'downloads', 'admin_settings')
 ORDER BY tablename, indexname;
 
 -- ========================================

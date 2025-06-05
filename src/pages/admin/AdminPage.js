@@ -17,13 +17,14 @@ import {
 } from '../../services/downloadService';
 import { Link, useNavigate } from 'react-router-dom';
 import inLogo from '../../images/in-logo.png';
+import { authenticateAdmin, changeAdminPassword, initializeAdminSettings } from '../../services/adminService';
 
 function AdminPage() {
   const navigate = useNavigate();
   
   
   // Campaign states
-  const [activeTab, setActiveTab] = useState('create'); // 'create', 'campaigns', 'analytics', or 'downloads'
+  const [activeTab, setActiveTab] = useState('create'); // 'create', 'campaigns', 'analytics', 'downloads', or 'profile'
   const [campaigns, setCampaigns] = useState([]);
   const [campaignForm, setCampaignForm] = useState({
     name: '',
@@ -50,6 +51,13 @@ function AdminPage() {
   const [downloads, setDownloads] = useState([]);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Profile states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [profileMessage, setProfileMessage] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
     // Load data on component mount
@@ -258,6 +266,45 @@ function AdminPage() {
     }
   };
 
+  // Profile functions
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setProfileMessage('Semua field password wajib diisi');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setProfileMessage('Password baru dan konfirmasi password tidak cocok');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setProfileMessage('Password baru minimal 6 karakter');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    setProfileMessage('Mengubah password...');
+
+    try {
+      const result = await changeAdminPassword(currentPassword, newPassword);
+      
+      if (result.success) {
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setProfileMessage('Password berhasil diubah');
+      } else {
+        setProfileMessage(`Gagal mengubah password: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      setProfileMessage('Terjadi kesalahan saat mengubah password');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   // Load analytics when tab changes
   useEffect(() => {
     if (activeTab === 'analytics' || activeTab === 'downloads') {
@@ -302,10 +349,16 @@ function AdminPage() {
               Analytics
             </button>
             <button
-              className={`px-4 py-2 whitespace-nowrap ${activeTab === 'downloads' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              className={`px-4 py-2 mr-2 whitespace-nowrap ${activeTab === 'downloads' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
               onClick={() => setActiveTab('downloads')}
             >
               Downloads
+            </button>
+            <button
+              className={`px-4 py-2 whitespace-nowrap ${activeTab === 'profile' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              onClick={() => setActiveTab('profile')}
+            >
+              Profile
             </button>
           </div>
           
@@ -745,6 +798,83 @@ function AdminPage() {
                 </div>
               )}
               
+            </>
+          )}
+
+          {/* Profile Tab */}
+          {activeTab === 'profile' && (
+            <>
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold mb-4">Admin Profile</h2>
+                
+                {/* Change Password Section */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <h3 className="text-lg font-medium mb-4">Ubah Password</h3>
+                  
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Password Saat Ini
+                    </label>
+                    <input
+                      type="password"
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Masukkan password saat ini"
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Password Baru
+                    </label>
+                    <input
+                      type="password"
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Masukkan password baru (minimal 6 karakter)"
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Konfirmasi Password Baru
+                    </label>
+                    <input
+                      type="password"
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Konfirmasi password baru"
+                    />
+                  </div>
+
+                  <button
+                    className="w-full h-12 font-roboto bg-[#14eb99] disabled:bg-[#72f3c2] text-white rounded-xl hover:bg-[#10b777] disabled:hover:bg-[#72f3c2] mb-4"
+                    onClick={handleChangePassword}
+                    disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                  >
+                    {isChangingPassword ? 'Mengubah Password...' : 'Ubah Password'}
+                  </button>
+
+                  {profileMessage && (
+                    <div className={`p-2 rounded-md text-center ${profileMessage.includes('berhasil') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {profileMessage}
+                    </div>
+                  )}
+                </div>
+
+                {/* Admin Info Section */}
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h3 className="text-lg font-medium mb-2">Informasi Admin</h3>
+                  <div className="text-sm text-gray-600">
+                    <p><strong>Role:</strong> Administrator</p>
+                    <p><strong>Access Level:</strong> Full Access</p>
+                    <p><strong>Login Status:</strong> <span className="text-green-600">Active</span></p>
+                  </div>
+                </div>
+              </div>
             </>
           )}
           
