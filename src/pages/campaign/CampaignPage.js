@@ -45,7 +45,14 @@ function CampaignPage() {
   }, [slug]);
 
   const generateRandomId = () => {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    return Math.random().toString(36).substring(2, 7);
+  };
+
+  const cleanNameForFilename = (name) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '') // Remove all non-alphanumeric characters
+      .substring(0, 20); // Limit to 20 characters
   };
 
   const handleDownloadImage = async () => {
@@ -75,8 +82,9 @@ function CampaignPage() {
 
         const a = document.createElement('a');
         a.href = canvas.toDataURL("image/jpeg", 1.0);
-        // Use filename from tracking or fallback
-        a.download = trackResult.filename || `${campaign.slug}_${generateRandomId()}.jpg`;
+        // Use filename from tracking or fallback with new format
+        const fallbackFilename = `${campaign.slug}_${cleanNameForFilename(name.trim())}_${generateRandomId()}.jpg`;
+        a.download = trackResult.filename || fallbackFilename;
         a.click();
       } catch (error) {
         console.error('Error generating/downloading image:', error);

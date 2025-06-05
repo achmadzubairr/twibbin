@@ -5,10 +5,20 @@
 import { supabase, handleSupabaseError, handleSupabaseSuccess } from '../config/supabase';
 
 /**
- * Generate random ID for downloads
+ * Generate random ID for downloads (max 5 characters)
  */
 const generateRandomId = () => {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  return Math.random().toString(36).substring(2, 7);
+};
+
+/**
+ * Clean user name for filename (remove special characters, spaces, etc.)
+ */
+const cleanNameForFilename = (name) => {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '') // Remove all non-alphanumeric characters
+    .substring(0, 20); // Limit to 20 characters
 };
 
 /**
@@ -39,7 +49,8 @@ export const trackDownload = async (downloadData) => {
     }
 
     const randomId = generateRandomId();
-    const filename = `${campaignSlug}_${randomId}.jpg`;
+    const cleanedUserName = cleanNameForFilename(userName);
+    const filename = `${campaignSlug}_${cleanedUserName}_${randomId}.jpg`;
     const userAgent = navigator.userAgent;
     const ipAddress = await getUserIP();
 
