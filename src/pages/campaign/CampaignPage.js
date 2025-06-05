@@ -5,7 +5,8 @@ import html2canvas from 'html2canvas';
 import inLogo from '../../images/in-logo.png';
 import defaultTemplate from '../../images/template.jpg';
 import { Link } from 'react-router-dom';
-import { getCampaignBySlug } from '../../services/campaignService';
+import { getCampaignBySlug } from '../../services/supabaseCampaignService';
+import { trackDownload } from '../../services/downloadService';
 
 function CampaignPage() {
   const { slug } = useParams();
@@ -22,14 +23,14 @@ function CampaignPage() {
     const loadCampaign = async () => {
       try {
         setLoading(true);
-        const campaignData = await getCampaignBySlug(slug);
+        const result = await getCampaignBySlug(slug);
         
-        if (!campaignData) {
+        if (!result.success || !result.data) {
           setError('Campaign tidak ditemukan atau tidak aktif');
           return;
         }
         
-        setCampaign(campaignData);
+        setCampaign(result.data);
       } catch (error) {
         console.error('Failed to load campaign:', error);
         setError('Gagal memuat campaign');
@@ -47,25 +48,40 @@ function CampaignPage() {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   };
 
-  const handleDownloadImage = () => {
-    if (pregeneratedImage != null && campaign) {
+  const handleDownloadImage = async () => {
+    if (pregeneratedImage != null && campaign && name.trim()) {
       const scaleSize = imageSize / pregeneratedImage.offsetWidth;
 
-      html2canvas(pregeneratedImage, { 
-        scale: scaleSize,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null
-      }).then(canvas => {
+      try {
+        // Track download in database first
+        const trackResult = await trackDownload({
+          campaignId: campaign.id,
+          userName: name.trim(),
+          additionalText: additionalText.trim(),
+          campaignSlug: campaign.slug
+        });
+
+        if (!trackResult.success) {
+          console.warn('Failed to track download:', trackResult.error);
+        }
+
+        // Generate and download image
+        const canvas = await html2canvas(pregeneratedImage, { 
+          scale: scaleSize,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: null
+        });
+
         const a = document.createElement('a');
         a.href = canvas.toDataURL("image/jpeg", 1.0);
-        // Format: namacampaign_randomid
-        a.download = `${campaign.slug}_${generateRandomId()}.jpg`;
+        // Use filename from tracking or fallback
+        a.download = trackResult.filename || `${campaign.slug}_${generateRandomId()}.jpg`;
         a.click();
-      }).catch(error => {
-        console.error('Error generating image:', error);
+      } catch (error) {
+        console.error('Error generating/downloading image:', error);
         alert('Gagal mengunduh gambar. Coba lagi.');
-      });
+      }
     }
   };
 
@@ -109,7 +125,7 @@ function CampaignPage() {
           <div className="bg-white w-[18rem] md:w-[28rem] lg:w-[35rem] drop-shadow-lg rounded-lg overflow-hidden">
             <div className="image-container">
               <div ref={(element) => refCallback(element, setPregeneratedImage)} className="w-full relative">
-                <img src={campaign.templateUrl} alt="Template" crossOrigin="anonymous"/>
+                <img src={campaign.template_url} alt="Template" crossOrigin="anonymous"/>
                 <div className="absolute h-[3rem] md:h-[4.1rem] lg:h-[5.1rem] w-full bottom-0 left-0 right-0 flex justify-center">
                   <div className="block font-monsterrat text-center leading-[0.45rem] md:leading-[0.75rem] lg:leading-[0.95rem] text-[#444444]">
                     <span className="font-bold text-[0.48rem] md:text-[0.72rem] lg:text-[0.92rem]">{name}</span><br/>

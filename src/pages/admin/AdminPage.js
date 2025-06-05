@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { handleInputFileChange, handleInputChange } from '../../utils/component-handler.ts';
 import { saveTemplate, getTemplate, resetTemplate } from '../../services/templateService';
-import { createCampaign, getCampaigns, deleteCampaign, toggleCampaignStatus } from '../../services/campaignService';
+import { 
+  createCampaign, 
+  getCampaigns, 
+  deleteCampaign, 
+  toggleCampaignStatus,
+  getCampaignAnalytics 
+} from '../../services/supabaseCampaignService';
+import { 
+  getAllDownloads, 
+  getDownloadStats, 
+  exportToCSV, 
+  downloadCSV 
+} from '../../services/downloadService';
 import { Link, useNavigate } from 'react-router-dom';
 import inLogo from '../../images/in-logo.png';
 import defaultTemplate from '../../images/template.jpg';
@@ -16,7 +28,7 @@ function AdminPage() {
   const [currentTemplate, setCurrentTemplate] = useState(null);
   
   // Campaign states
-  const [activeTab, setActiveTab] = useState('template'); // 'template' or 'campaigns'
+  const [activeTab, setActiveTab] = useState('campaigns'); // 'template', 'campaigns', 'analytics', or 'downloads'
   const [campaigns, setCampaigns] = useState([]);
   const [campaignForm, setCampaignForm] = useState({
     name: '',
@@ -25,6 +37,13 @@ function AdminPage() {
   });
   const [campaignMessage, setCampaignMessage] = useState('');
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
+  
+  // Analytics states
+  const [analytics, setAnalytics] = useState([]);
+  const [downloadStats, setDownloadStats] = useState(null);
+  const [downloads, setDownloads] = useState([]);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     // Load data on component mount
@@ -37,8 +56,10 @@ function AdminPage() {
         }
         
         // Load campaigns
-        const campaignsData = await getCampaigns();
-        setCampaigns(campaignsData);
+        const campaignsResult = await getCampaigns();
+        if (campaignsResult.success) {
+          setCampaigns(campaignsResult.data);
+        }
       } catch (error) {
         console.error('Failed to load data:', error);
       }
@@ -127,7 +148,7 @@ function AdminPage() {
       const result = await createCampaign(campaignForm);
       
       if (result.success) {
-        setCampaigns([...campaigns, result.campaign]);
+        setCampaigns([...campaigns, result.data]);
         setCampaignForm({ name: '', slug: '', templateFile: null });
         setCampaignMessage('Campaign berhasil dibuat');
       } else {
@@ -165,9 +186,9 @@ function AdminPage() {
       
       if (result.success) {
         setCampaigns(campaigns.map(c => 
-          c.id === campaignId ? result.campaign : c
+          c.id === campaignId ? result.data : c
         ));
-        setCampaignMessage(`Campaign ${result.campaign.isActive ? 'diaktifkan' : 'dinonaktifkan'}`);
+        setCampaignMessage(`Campaign ${result.data.is_active ? 'diaktifkan' : 'dinonaktifkan'}`);
       } else {
         setCampaignMessage(`Gagal mengubah status: ${result.error}`);
       }
@@ -185,6 +206,57 @@ function AdminPage() {
       .replace(/-+/g, '-')
       .trim();
   };
+
+  // Analytics functions
+  const loadAnalytics = async () => {
+    setIsLoadingAnalytics(true);
+    try {
+      const [analyticsResult, statsResult, downloadsResult] = await Promise.all([
+        getCampaignAnalytics(),
+        getDownloadStats(),
+        getAllDownloads({ limit: 50 })
+      ]);
+
+      if (analyticsResult.success) {
+        setAnalytics(analyticsResult.data);
+      }
+
+      if (statsResult.success) {
+        setDownloadStats(statsResult.data);
+      }
+
+      if (downloadsResult.success) {
+        setDownloads(downloadsResult.data);
+      }
+    } catch (error) {
+      console.error('Failed to load analytics:', error);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
+  const handleExportDownloads = async () => {
+    setIsExporting(true);
+    try {
+      const result = await getAllDownloads({ limit: 10000 }); // Export all
+      if (result.success) {
+        const csvContent = exportToCSV(result.data);
+        const timestamp = new Date().toISOString().split('T')[0];
+        downloadCSV(csvContent, `twibbin_downloads_${timestamp}.csv`);
+      }
+    } catch (error) {
+      console.error('Failed to export downloads:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Load analytics when tab changes
+  useEffect(() => {
+    if (activeTab === 'analytics' || activeTab === 'downloads') {
+      loadAnalytics();
+    }
+  }, [activeTab]);
 
   return (
     <div className="overflow-x-hidden">
@@ -205,18 +277,30 @@ function AdminPage() {
           <h1 className="text-2xl font-bold mb-6 text-center">Admin Panel</h1>
           
           {/* Tab Navigation */}
-          <div className="flex mb-6 border-b">
+          <div className="flex mb-6 border-b overflow-x-auto">
             <button
-              className={`px-4 py-2 mr-2 ${activeTab === 'template' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              className={`px-4 py-2 mr-2 whitespace-nowrap ${activeTab === 'template' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
               onClick={() => setActiveTab('template')}
             >
               Global Template
             </button>
             <button
-              className={`px-4 py-2 ${activeTab === 'campaigns' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              className={`px-4 py-2 mr-2 whitespace-nowrap ${activeTab === 'campaigns' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
               onClick={() => setActiveTab('campaigns')}
             >
-              Campaign Management
+              Campaigns
+            </button>
+            <button
+              className={`px-4 py-2 mr-2 whitespace-nowrap ${activeTab === 'analytics' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              onClick={() => setActiveTab('analytics')}
+            >
+              Analytics
+            </button>
+            <button
+              className={`px-4 py-2 whitespace-nowrap ${activeTab === 'downloads' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+              onClick={() => setActiveTab('downloads')}
+            >
+              Downloads
             </button>
           </div>
           
@@ -393,19 +477,19 @@ function AdminPage() {
                             <h3 className="font-semibold">{campaign.name}</h3>
                             <p className="text-sm text-gray-600">/{campaign.slug}</p>
                             <p className="text-xs text-gray-500">
-                              Dibuat: {new Date(campaign.createdAt).toLocaleDateString('id-ID')}
+                              Dibuat: {new Date(campaign.created_at).toLocaleDateString('id-ID')}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded text-xs ${campaign.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                              {campaign.isActive ? 'Aktif' : 'Nonaktif'}
+                            <span className={`px-2 py-1 rounded text-xs ${campaign.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {campaign.is_active ? 'Aktif' : 'Nonaktif'}
                             </span>
                           </div>
                         </div>
                         
                         <div className="mb-3">
                           <img
-                            src={campaign.templateUrl}
+                            src={campaign.template_url}
                             alt={`Template ${campaign.name}`}
                             className="max-h-32 mx-auto"
                           />
@@ -419,10 +503,10 @@ function AdminPage() {
                             Lihat
                           </button>
                           <button
-                            className={`flex-1 px-3 py-1 text-sm rounded ${campaign.isActive ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'} text-white`}
+                            className={`flex-1 px-3 py-1 text-sm rounded ${campaign.is_active ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'} text-white`}
                             onClick={() => handleToggleCampaignStatus(campaign.id)}
                           >
-                            {campaign.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                            {campaign.is_active ? 'Nonaktifkan' : 'Aktifkan'}
                           </button>
                           <button
                             className="flex-1 px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
@@ -435,6 +519,168 @@ function AdminPage() {
                     ))}
                   </div>
                 )}
+              </div>
+            </>
+          )}
+
+          {/* Analytics Tab */}
+          {activeTab === 'analytics' && (
+            <>
+              {isLoadingAnalytics ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#14eb99] mx-auto mb-4"></div>
+                  <p>Memuat analytics...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Overview Stats */}
+                  {downloadStats && (
+                    <div className="mb-6">
+                      <h2 className="text-xl font-semibold mb-4">Overview</h2>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div className="bg-blue-50 p-3 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-blue-600">{downloadStats.total}</div>
+                          <div className="text-sm text-blue-500">Total Downloads</div>
+                        </div>
+                        <div className="bg-green-50 p-3 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-green-600">{downloadStats.today}</div>
+                          <div className="text-sm text-green-500">Hari Ini</div>
+                        </div>
+                        <div className="bg-purple-50 p-3 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-purple-600">{downloadStats.thisWeek}</div>
+                          <div className="text-sm text-purple-500">Minggu Ini</div>
+                        </div>
+                        <div className="bg-orange-50 p-3 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-orange-600">{downloadStats.uniqueUsers}</div>
+                          <div className="text-sm text-orange-500">Unique Users</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Campaign Analytics */}
+                  <div className="mb-6">
+                    <h2 className="text-xl font-semibold mb-4">Campaign Performance</h2>
+                    {analytics.length === 0 ? (
+                      <p className="text-gray-500 text-center py-4">Belum ada data analytics</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {analytics.map((campaign) => (
+                          <div key={campaign.id} className="border rounded-lg p-4 bg-gray-50">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h3 className="font-semibold">{campaign.name}</h3>
+                                <p className="text-sm text-gray-600">/{campaign.slug}</p>
+                              </div>
+                              <span className={`px-2 py-1 rounded text-xs ${campaign.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {campaign.is_active ? 'Aktif' : 'Nonaktif'}
+                              </span>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                              <div>
+                                <div className="font-medium text-blue-600">{campaign.total_downloads || 0}</div>
+                                <div className="text-gray-500">Total Downloads</div>
+                              </div>
+                              <div>
+                                <div className="font-medium text-green-600">{campaign.unique_users || 0}</div>
+                                <div className="text-gray-500">Unique Users</div>
+                              </div>
+                              <div>
+                                <div className="font-medium text-purple-600">{campaign.downloads_today || 0}</div>
+                                <div className="text-gray-500">Hari Ini</div>
+                              </div>
+                              <div>
+                                <div className="font-medium text-orange-600">{campaign.downloads_this_week || 0}</div>
+                                <div className="text-gray-500">Minggu Ini</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Top Names */}
+                  {downloadStats?.topNames && downloadStats.topNames.length > 0 && (
+                    <div className="mb-6">
+                      <h2 className="text-xl font-semibold mb-4">Nama Paling Populer</h2>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="space-y-2">
+                          {downloadStats.topNames.slice(0, 10).map((item, index) => (
+                            <div key={index} className="flex justify-between items-center">
+                              <span className="text-sm">{item.item}</span>
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                {item.count}x
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+
+          {/* Downloads Tab */}
+          {activeTab === 'downloads' && (
+            <>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Recent Downloads</h2>
+                <button
+                  onClick={handleExportDownloads}
+                  disabled={isExporting}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-green-300 text-sm"
+                >
+                  {isExporting ? 'Exporting...' : 'Export CSV'}
+                </button>
+              </div>
+
+              {isLoadingAnalytics ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#14eb99] mx-auto mb-4"></div>
+                  <p>Memuat downloads...</p>
+                </div>
+              ) : downloads.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Belum ada download</p>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {downloads.map((download) => (
+                    <div key={download.id} className="border rounded-lg p-3 bg-gray-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <div className="font-medium">{download.user_name}</div>
+                          <div className="text-sm text-gray-600">
+                            {download.campaigns?.name || 'Unknown Campaign'}
+                          </div>
+                          {download.additional_text && (
+                            <div className="text-sm text-gray-500">"{download.additional_text}"</div>
+                          )}
+                        </div>
+                        <div className="text-right text-xs text-gray-500">
+                          <div>{new Date(download.download_time).toLocaleDateString('id-ID')}</div>
+                          <div>{new Date(download.download_time).toLocaleTimeString('id-ID')}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center text-xs text-gray-400">
+                        <span>{download.filename}</span>
+                        <span>{download.ip_address || 'Unknown IP'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="mt-4 text-center">
+                <button
+                  onClick={loadAnalytics}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                >
+                  Refresh Data
+                </button>
               </div>
             </>
           )}

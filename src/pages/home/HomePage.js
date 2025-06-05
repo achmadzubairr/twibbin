@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import inLogo from '../../images/in-logo.png';
 import { Link } from 'react-router-dom';
-import { getCampaigns } from '../../services/campaignService';
+import { getActiveCampaigns } from '../../services/supabaseCampaignService';
 
 function HomePage() {  
   const [campaigns, setCampaigns] = useState([]);
@@ -10,9 +10,10 @@ function HomePage() {
     // Load active campaigns
     const loadCampaigns = async () => {
       try {
-        const campaignsData = await getCampaigns();
-        const activeCampaigns = campaignsData.filter(c => c.isActive);
-        setCampaigns(activeCampaigns);
+        const result = await getActiveCampaigns();
+        if (result.success) {
+          setCampaigns(result.data);
+        }
       } catch (error) {
         console.error('Failed to load campaigns:', error);
       }
@@ -43,7 +44,7 @@ function HomePage() {
                     className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
                   >
                     <img
-                      src={campaign.templateUrl}
+                      src={campaign.template_url}
                       alt={campaign.name}
                       className="w-full h-48 object-cover"
                     />
