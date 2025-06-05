@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 app ini dibuat oleh @zavierferodova
 
 # Getting Started with Create React App
@@ -73,3 +74,6 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 
 Add admin page & cloud storage
 
+=======
+# twibbinv2
+>>>>>>> 52af8faf16562badca3800be5adeb5274102a376
