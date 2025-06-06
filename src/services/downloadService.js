@@ -134,7 +134,7 @@ export const getCampaignDownloads = async (campaignId, options = {}) => {
 /**
  * Get all downloads with campaign info
  * @param {Object} options - { limit, offset, startDate, endDate }
- * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ * @returns {Promise<{success: boolean, data?: Array, error?: string, count?: number}>}
  */
 export const getAllDownloads = async (options = {}) => {
   try {
@@ -177,6 +177,40 @@ export const getAllDownloads = async (options = {}) => {
 };
 
 /**
+ * Get total count of downloads
+ * @param {Object} options - { startDate, endDate }
+ * @returns {Promise<{success: boolean, count?: number, error?: string}>}
+ */
+export const getDownloadsCount = async (options = {}) => {
+  try {
+    const { startDate, endDate } = options;
+
+    let query = supabase
+      .from('downloads')
+      .select('id', { count: 'exact', head: true });
+
+    if (startDate) {
+      query = query.gte('download_time', startDate);
+    }
+
+    if (endDate) {
+      query = query.lte('download_time', endDate);
+    }
+
+    const { count, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    return handleSupabaseSuccess({ count });
+  } catch (error) {
+    console.error('Failed to get downloads count:', error);
+    return handleSupabaseError(error);
+  }
+};
+
+/**
  * Get download statistics
  * @param {string} campaignId - Optional campaign ID to filter by
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
@@ -195,21 +229,46 @@ export const getDownloadStats = async (campaignId = null) => {
       throw error;
     }
 
+    // Use Asia/Makassar timezone for accurate local time calculations
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const thisWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Calculate "today" from 00:00:00 Asia/Makassar time
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Calculate "this week" from Monday 00:00:00 Asia/Makassar time
+    const currentWeekStart = new Date(now);
+    const dayOfWeek = currentWeekStart.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 0, so 6 days back
+    currentWeekStart.setDate(currentWeekStart.getDate() - daysToMonday);
+    currentWeekStart.setHours(0, 0, 0, 0);
+    
+    // Calculate "this month" from 1st day 00:00:00 Asia/Makassar time
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const stats = {
       total: data.length,
-      today: data.filter(d => new Date(d.download_time) >= today).length,
-      thisWeek: data.filter(d => new Date(d.download_time) >= thisWeek).length,
-      thisMonth: data.filter(d => new Date(d.download_time) >= thisMonth).length,
+      // Use "today" from 00:00 instead of 24 hours ago
+      today: data.filter(d => new Date(d.download_time) >= todayStart).length,
+      // Use "this week" from Monday 00:00
+      thisWeek: data.filter(d => new Date(d.download_time) >= currentWeekStart).length,
+      // Use "this month" from 1st day 00:00
+      thisMonth: data.filter(d => new Date(d.download_time) >= thisMonthStart).length,
       uniqueUsers: new Set(data.map(d => d.user_name)).size,
       uniqueIPs: new Set(data.map(d => d.ip_address).filter(Boolean)).size,
       topNames: getTopItems(data.map(d => d.user_name), 10),
       hourlyDistribution: getHourlyDistribution(data),
-      dailyDownloads: getDailyDownloads(data, 30) // Last 30 days
+      dailyDownloads: getDailyDownloads(data, 30), // Last 30 days
+      // Debug info for timezone checking
+      debug: {
+        now: now.toISOString(),
+        nowLocal: now.toLocaleString('id-ID', { timeZone: 'Asia/Makassar' }),
+        todayStart: todayStart.toISOString(),
+        todayStartLocal: todayStart.toLocaleString('id-ID', { timeZone: 'Asia/Makassar' }),
+        currentWeekStart: currentWeekStart.toISOString(),
+        currentWeekStartLocal: currentWeekStart.toLocaleString('id-ID', { timeZone: 'Asia/Makassar' }),
+        thisMonthStart: thisMonthStart.toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      }
     };
 
     return handleSupabaseSuccess(stats);

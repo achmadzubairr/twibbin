@@ -12,6 +12,7 @@ import {
 import { 
   getAllDownloads, 
   getDownloadStats, 
+  getDownloadsCount,
   exportToCSV, 
   downloadCSV 
 } from '../../services/downloadService';
@@ -51,6 +52,18 @@ function AdminPage() {
   const [downloads, setDownloads] = useState([]);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  
+  // Pagination states for downloads
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalDownloads, setTotalDownloads] = useState(0);
+  const downloadsPerPage = 10;
+  
+  // Error states
+  const [analyticsError, setAnalyticsError] = useState(null);
+  const [downloadsError, setDownloadsError] = useState(null);
+  
+  // Responsive state
+  const [isMobile, setIsMobile] = useState(false);
 
   // Profile states
   const [currentPassword, setCurrentPassword] = useState('');
@@ -228,30 +241,83 @@ function AdminPage() {
   // Analytics functions
   const loadAnalytics = async () => {
     setIsLoadingAnalytics(true);
+    setAnalyticsError(null);
     try {
-      const [analyticsResult, statsResult, downloadsResult] = await Promise.all([
+      const [analyticsResult, statsResult] = await Promise.all([
         getCampaignAnalytics(),
-        getDownloadStats(),
-        getAllDownloads({ limit: 50 })
+        getDownloadStats()
       ]);
 
       if (analyticsResult.success) {
         setAnalytics(analyticsResult.data);
+        console.log('Campaign Analytics:', analyticsResult.data);
+      } else {
+        setAnalyticsError(analyticsResult.error || 'Failed to load analytics');
       }
 
       if (statsResult.success) {
         setDownloadStats(statsResult.data);
-      }
-
-      if (downloadsResult.success) {
-        setDownloads(downloadsResult.data);
+        console.log('Download Stats:', statsResult.data);
+        if (statsResult.data.debug) {
+          console.log('Debug info:', statsResult.data.debug);
+        }
+      } else {
+        setAnalyticsError(prev => prev || statsResult.error || 'Failed to load stats');
       }
     } catch (error) {
       console.error('Failed to load analytics:', error);
+      setAnalyticsError('Terjadi kesalahan saat memuat analytics');
     } finally {
       setIsLoadingAnalytics(false);
     }
   };
+
+  // Load downloads with pagination
+  const loadDownloads = async (page = 1) => {
+    setIsLoadingAnalytics(true);
+    setDownloadsError(null);
+
+    try {
+      const offset = (page - 1) * downloadsPerPage;
+      
+      // Get downloads and total count in parallel
+      const [downloadsResult, countResult] = await Promise.all([
+        getAllDownloads({ 
+          limit: downloadsPerPage,
+          offset 
+        }),
+        getDownloadsCount()
+      ]);
+
+      if (downloadsResult.success) {
+        const data = downloadsResult.data || [];
+        setDownloads(data);
+        setCurrentPage(page);
+        
+        // Set total count from API
+        if (countResult && countResult.success) {
+          setTotalDownloads(countResult.data.count || 0);
+        }
+      } else {
+        setDownloadsError(downloadsResult.error || 'Failed to load downloads');
+      }
+    } catch (error) {
+      console.error('Failed to load downloads:', error);
+      setDownloadsError('Terjadi kesalahan saat memuat downloads');
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
+  // Go to specific page
+  const goToPage = (page) => {
+    if (page !== currentPage && !isLoadingAnalytics) {
+      loadDownloads(page);
+    }
+  };
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalDownloads / downloadsPerPage);
 
   const handleExportDownloads = async () => {
     setIsExporting(true);
@@ -310,10 +376,32 @@ function AdminPage() {
 
   // Load analytics when tab changes
   useEffect(() => {
-    if (activeTab === 'analytics' || activeTab === 'downloads') {
+    if (activeTab === 'analytics') {
       loadAnalytics();
+    } else if (activeTab === 'downloads') {
+      loadDownloads(1);
     }
   }, [activeTab]);
+
+  // Auto-load analytics on first render if we're on analytics/downloads tab
+  useEffect(() => {
+    if (activeTab === 'analytics') {
+      loadAnalytics();
+    } else if (activeTab === 'downloads') {
+      loadDownloads(1);
+    }
+  }, []);
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   return (
     <div className="overflow-x-hidden overflow-y-auto min-h-screen bg-[#f2fdf5]">
@@ -699,12 +787,36 @@ function AdminPage() {
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#14eb99] mx-auto mb-4"></div>
                   <p>Memuat analytics...</p>
                 </div>
+              ) : analyticsError ? (
+                <div className="text-center py-8">
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    <strong>Error:</strong> {analyticsError}
+                  </div>
+                  <button
+                    onClick={loadAnalytics}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                  >
+                    Coba Lagi
+                  </button>
+                </div>
               ) : (
                 <>
+                  {/* Analytics Header with Refresh Button */}
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold">Analytics Dashboard</h2>
+                    <button
+                      onClick={loadAnalytics}
+                      className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                      disabled={isLoadingAnalytics}
+                    >
+                      {isLoadingAnalytics ? 'Loading...' : 'Refresh'}
+                    </button>
+                  </div>
+
                   {/* Overview Stats */}
                   {downloadStats && (
                     <div className="mb-6">
-                      <h2 className="text-xl font-semibold mb-4">Overview</h2>
+                      <h3 className="text-lg font-semibold mb-4">Overview</h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div className="bg-blue-50 p-3 rounded-lg text-center">
                           <div className="text-2xl font-bold text-blue-600">{downloadStats.total}</div>
@@ -723,13 +835,14 @@ function AdminPage() {
                           <div className="text-sm text-orange-500">Unique Users</div>
                         </div>
                       </div>
+                      
                     </div>
                   )}
 
                   {/* Campaign Analytics */}
                   <div className="mb-6">
                     <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-xl font-semibold">Campaign Performance</h2>
+                      <h3 className="text-lg font-semibold">Campaign Performance</h3>
                       <div className="text-sm text-gray-500">
                         {analytics.length} campaign
                       </div>
@@ -784,7 +897,7 @@ function AdminPage() {
                   {downloadStats?.topNames && downloadStats.topNames.length > 0 && (
                     <div className="mb-6">
                       <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold">Nama Paling Populer</h2>
+                        <h3 className="text-lg font-semibold">Nama Paling Populer</h3>
                         <div className="text-sm text-gray-500">
                           Top {Math.min(downloadStats.topNames.length, 15)}
                         </div>
@@ -809,15 +922,6 @@ function AdminPage() {
                     </div>
                   )}
 
-                  {/* Refresh Button */}
-                  <div className="text-center">
-                    <button
-                      onClick={loadAnalytics}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                    >
-                      Refresh Analytics
-                    </button>
-                  </div>
                 </>
               )}
             </>
@@ -827,14 +931,30 @@ function AdminPage() {
           {activeTab === 'downloads' && (
             <>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Recent Downloads</h2>
-                <button
-                  onClick={handleExportDownloads}
-                  disabled={isExporting}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-green-300 text-sm"
-                >
-                  {isExporting ? 'Exporting...' : 'Export CSV'}
-                </button>
+                <div>
+                  <h2 className="text-xl font-semibold">Downloads</h2>
+                  {totalDownloads > 0 && (
+                    <p className="text-sm text-gray-500">
+                      Halaman {currentPage} dari {totalPages} - Menampilkan {downloads.length} dari {totalDownloads} total downloads
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => loadDownloads(1)}
+                    className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                    disabled={isLoadingAnalytics}
+                  >
+                    {isLoadingAnalytics ? 'Loading...' : 'Refresh'}
+                  </button>
+                  <button
+                    onClick={handleExportDownloads}
+                    disabled={isExporting}
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-green-300 text-sm"
+                  >
+                    {isExporting ? 'Exporting...' : 'Export CSV'}
+                  </button>
+                </div>
               </div>
 
               {isLoadingAnalytics ? (
@@ -842,35 +962,146 @@ function AdminPage() {
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#14eb99] mx-auto mb-4"></div>
                   <p>Memuat downloads...</p>
                 </div>
+              ) : downloadsError ? (
+                <div className="text-center py-8">
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    <strong>Error:</strong> {downloadsError}
+                  </div>
+                  <button
+                    onClick={() => loadDownloads(1, false)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                  >
+                    Coba Lagi
+                  </button>
+                </div>
               ) : downloads.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">Belum ada download</p>
               ) : (
-                <div className="space-y-3 max-h-[48rem] overflow-y-auto">
-                  {downloads.map((download) => (
-                    <div key={download.id} className="border border-gray-200 rounded-md p-3 bg-gray-50">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <div className="font-medium">{download.user_name}</div>
-                          <div className="text-sm text-gray-600">
-                            {download.campaigns?.name || 'Unknown Campaign'}
+                <>
+                  <div className="space-y-3 max-h-[48rem] overflow-y-auto">
+                    {downloads.map((download) => (
+                      <div key={download.id} className="border border-gray-200 rounded-md p-3 bg-gray-50">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <div className="font-medium">{download.user_name}</div>
+                            <div className="text-sm text-gray-600">
+                              {download.campaigns?.name || 'Unknown Campaign'}
+                            </div>
+                            {download.additional_text && (
+                              <div className="text-sm text-gray-500">"{download.additional_text}"</div>
+                            )}
                           </div>
-                          {download.additional_text && (
-                            <div className="text-sm text-gray-500">"{download.additional_text}"</div>
-                          )}
+                          <div className="text-right text-xs text-gray-500">
+                            <div>{new Date(download.download_time).toLocaleDateString('id-ID')}</div>
+                            <div>{new Date(download.download_time).toLocaleTimeString('id-ID')}</div>
+                          </div>
                         </div>
-                        <div className="text-right text-xs text-gray-500">
-                          <div>{new Date(download.download_time).toLocaleDateString('id-ID')}</div>
-                          <div>{new Date(download.download_time).toLocaleTimeString('id-ID')}</div>
+                        
+                        <div className="flex justify-between items-center text-xs text-gray-400">
+                          <span>{download.filename}</span>
+                          <span>{download.ip_address || 'Unknown IP'}</span>
                         </div>
                       </div>
-                      
-                      <div className="flex justify-between items-center text-xs text-gray-400">
-                        <span>{download.filename}</span>
-                        <span>{download.ip_address || 'Unknown IP'}</span>
+                    ))}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="mt-6">
+                      <div className="flex justify-center items-center gap-1 px-2 max-w-full overflow-x-auto">
+                        {/* Previous Button */}
+                        <button
+                          onClick={() => goToPage(currentPage - 1)}
+                          disabled={currentPage === 1 || isLoadingAnalytics}
+                          className="flex-shrink-0 px-2 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:bg-gray-300 text-sm"
+                        >
+                          <span className="hidden sm:inline">‹ Prev</span>
+                          <span className="sm:hidden">‹</span>
+                        </button>
+
+                        {/* Page Numbers - Responsive */}
+                        <div className="flex items-center gap-1 px-1">
+                        {(() => {
+                          const pages = [];
+                          // On mobile, show fewer pages
+                          const maxVisible = isMobile ? 3 : 5;
+                          let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                          let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                          
+                          // Adjust start if we're near the end
+                          if (endPage - startPage + 1 < maxVisible) {
+                            startPage = Math.max(1, endPage - maxVisible + 1);
+                          }
+
+                          // First page (always show on mobile if not in range)
+                          if (startPage > 1) {
+                            pages.push(
+                              <button
+                                key={1}
+                                onClick={() => goToPage(1)}
+                                disabled={isLoadingAnalytics}
+                                className="flex-shrink-0 px-2 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:bg-gray-100 text-sm w-8 h-8 flex items-center justify-center"
+                              >
+                                1
+                              </button>
+                            );
+                            if (startPage > 2) {
+                              pages.push(<span key="dots1" className="px-1 text-gray-500 text-sm">...</span>);
+                            }
+                          }
+
+                          // Page numbers
+                          for (let i = startPage; i <= endPage; i++) {
+                            pages.push(
+                              <button
+                                key={i}
+                                onClick={() => goToPage(i)}
+                                disabled={isLoadingAnalytics}
+                                className={`flex-shrink-0 rounded text-sm w-8 h-8 flex items-center justify-center ${
+                                  i === currentPage
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:bg-gray-100'
+                                }`}
+                              >
+                                {i}
+                              </button>
+                            );
+                          }
+
+                          // Last page (always show on mobile if not in range)
+                          if (endPage < totalPages) {
+                            if (endPage < totalPages - 1) {
+                              pages.push(<span key="dots2" className="px-1 text-gray-500 text-sm">...</span>);
+                            }
+                            pages.push(
+                              <button
+                                key={totalPages}
+                                onClick={() => goToPage(totalPages)}
+                                disabled={isLoadingAnalytics}
+                                className="flex-shrink-0 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:bg-gray-100 text-sm w-8 h-8 flex items-center justify-center"
+                              >
+                                {totalPages}
+                              </button>
+                            );
+                          }
+
+                          return pages;
+                        })()}
+                      </div>
+
+                        {/* Next Button */}
+                        <button
+                          onClick={() => goToPage(currentPage + 1)}
+                          disabled={currentPage === totalPages || isLoadingAnalytics}
+                          className="flex-shrink-0 px-2 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:bg-gray-300 text-sm"
+                        >
+                          <span className="hidden sm:inline">Next ›</span>
+                          <span className="sm:hidden">›</span>
+                        </button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
               
             </>
