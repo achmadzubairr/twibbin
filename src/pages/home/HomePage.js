@@ -6,6 +6,7 @@ import Footer from '../../components/Footer';
 
 function HomePage() {  
   const [campaigns, setCampaigns] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Load active campaigns
@@ -17,6 +18,8 @@ function HomePage() {
         }
       } catch (error) {
         console.error('Failed to load campaigns:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -34,7 +37,22 @@ function HomePage() {
       
       <div className="flex-1 flex flex-col items-center pt-6 pb-8 px-4">
           {/* Campaign Section */}
-          {campaigns.length > 0 ? (
+          {isLoading ? (
+            <div className="w-[18rem] md:w-[28rem] lg:w-[35rem]">
+              <h2 className="text-2xl lg:text-3xl font-bold text-center mb-8 text-gray-800">Pilih Template</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[1, 2, 3, 4].map((item) => (
+                  <div key={item} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+                    <div className="w-full h-48 bg-gray-200"></div>
+                    <div className="p-4">
+                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : campaigns.length > 0 ? (
             <div className="w-[18rem] md:w-[28rem] lg:w-[35rem]">
               <h2 className="text-2xl lg:text-3xl font-bold text-center mb-8 text-gray-800">Pilih Template</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -981,25 +981,25 @@ function AdminPage() {
                   <div className="space-y-3 max-h-[48rem] overflow-y-auto">
                     {downloads.map((download) => (
                       <div key={download.id} className="border border-gray-200 rounded-md p-3 bg-gray-50">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <div className="font-medium">{download.user_name}</div>
-                            <div className="text-sm text-gray-600">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{download.user_name}</div>
+                            <div className="text-sm text-gray-600 truncate">
                               {download.campaigns?.name || 'Unknown Campaign'}
                             </div>
                             {download.additional_text && (
-                              <div className="text-sm text-gray-500">"{download.additional_text}"</div>
+                              <div className="text-sm text-gray-500 break-words">"{download.additional_text}"</div>
                             )}
                           </div>
-                          <div className="text-right text-xs text-gray-500">
+                          <div className="text-left sm:text-right text-xs text-gray-500 mt-1 sm:mt-0 flex-shrink-0">
                             <div>{new Date(download.download_time).toLocaleDateString('id-ID')}</div>
                             <div>{new Date(download.download_time).toLocaleTimeString('id-ID')}</div>
                           </div>
                         </div>
                         
-                        <div className="flex justify-between items-center text-xs text-gray-400">
-                          <span>{download.filename}</span>
-                          <span>{download.ip_address || 'Unknown IP'}</span>
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-xs text-gray-400 gap-1">
+                          <span className="truncate flex-1 min-w-0" title={download.filename}>{download.filename}</span>
+                          <span className="flex-shrink-0">{download.ip_address || 'Unknown IP'}</span>
                         </div>
                       </div>
                     ))}
